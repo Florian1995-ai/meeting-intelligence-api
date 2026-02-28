@@ -217,13 +217,15 @@ def graph_stats(driver) -> Dict[str, Any]:
 # LLM Query Parsing (gpt-4o-mini)
 # ---------------------------------------------------------------------------
 
-QUERY_SYSTEM_PROMPT = """You are a query parser for a meeting knowledge graph. Given a natural language question, determine the best query type and extract parameters.
+QUERY_SYSTEM_PROMPT_BASE = """You are a query parser for a meeting knowledge graph. Given a natural language question, determine the best query type and extract parameters.
 
 The graph contains:
 - Person nodes with: canonical_name, category, email, total_meetings, first_seen, last_seen
 - Meeting nodes with: human_name, date, meeting_type
 - ATTENDED relationships (Person -> Meeting)
 - CO_ATTENDED relationships (Person <-> Person)
+
+The graph also has detailed entity nodes extracted from meeting transcripts. These include topics discussed, personal details mentioned, business ideas, action items, etc. You can search these using Cypher full-text or pattern matching.
 
 Categories include: 1FRIENDS, 2FREE5WEEKCHALLENGEPROSPECTS, 3CURRENTCLIENTS, 4GENERALNETWORKING, 5PASTCLIENTSCHURNED, 111PARTNERS, 111GROWWITHJACK, 14BNICONTACTS, etc.
 
@@ -242,14 +244,18 @@ Respond with JSON only. Choose one of these query types:
    Use for: "List all current clients", "Show me BNI contacts"
 
 5. {"type": "cypher", "query": "<cypher query>"}
-   Use for: complex graph queries that don't fit other types.
+   Use for: complex graph queries, personal details, topics discussed, or anything that doesn't fit other types.
    IMPORTANT: Only generate READ queries (MATCH/RETURN). Never generate CREATE/DELETE/SET queries.
+   For personal detail questions (kids, hobbies, business details), search entity nodes:
+   MATCH (n) WHERE toLower(n.entity_name) CONTAINS toLower('keyword') OR toLower(n.description) CONTAINS toLower('keyword') RETURN n.entity_name, n.description LIMIT 20
 
 6. {"type": "stats"}
    Use for: "How many people/meetings are in the graph?"
+"""
 
+QUERY_TRANSCRIPT_ADDENDUM = """
 7. {"type": "transcript_search", "keywords": ["keyword1", "keyword2"]}
-   Use for: Questions about the current call's live transcript, e.g. "What did they just say about pricing?", "Summarize the last few minutes". Only use this when live_context is provided.
+   Use for: Questions about the CURRENT CALL's live transcript only, e.g. "What did they just say about pricing?", "Summarize the last few minutes".
 """
 
 
@@ -258,6 +264,11 @@ def parse_query_with_llm(question: str, context_person: Optional[str] = None,
     """Use gpt-4o-mini to parse a natural language question into a structured query."""
     from openai import OpenAI
     client = OpenAI()
+
+    # Only include transcript_search option when live context is actually present
+    system_prompt = QUERY_SYSTEM_PROMPT_BASE
+    if live_context:
+        system_prompt += QUERY_TRANSCRIPT_ADDENDUM
 
     user_msg = question
     if context_person:
@@ -268,7 +279,7 @@ def parse_query_with_llm(question: str, context_person: Optional[str] = None,
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": QUERY_SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_msg},
         ],
         response_format={"type": "json_object"},
