@@ -247,10 +247,14 @@ Respond with JSON only. Choose one of these query types:
 
 6. {"type": "stats"}
    Use for: "How many people/meetings are in the graph?"
+
+7. {"type": "transcript_search", "keywords": ["keyword1", "keyword2"]}
+   Use for: Questions about the current call's live transcript, e.g. "What did they just say about pricing?", "Summarize the last few minutes". Only use this when live_context is provided.
 """
 
 
-def parse_query_with_llm(question: str, context_person: Optional[str] = None) -> Dict:
+def parse_query_with_llm(question: str, context_person: Optional[str] = None,
+                         live_context: Optional[str] = None) -> Dict:
     """Use gpt-4o-mini to parse a natural language question into a structured query."""
     from openai import OpenAI
     client = OpenAI()
@@ -258,6 +262,8 @@ def parse_query_with_llm(question: str, context_person: Optional[str] = None) ->
     user_msg = question
     if context_person:
         user_msg = f"[Context: Currently in a meeting with {context_person}]\n{question}"
+    if live_context:
+        user_msg += f"\n\n[Live transcript from current call (last 5 minutes):\n{live_context}\n]"
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -273,11 +279,36 @@ def parse_query_with_llm(question: str, context_person: Optional[str] = None) ->
     return json.loads(response.choices[0].message.content)
 
 
-def execute_parsed_query(driver, parsed: Dict) -> Dict:
+def search_live_transcript(question: str, live_context: str, keywords: list) -> str:
+    """Use gpt-4o-mini to answer a question about the live transcript."""
+    from openai import OpenAI
+    client = OpenAI()
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are analyzing a live meeting transcript. Answer the user's question based solely on the transcript provided. Be concise and specific. If the answer isn't in the transcript, say so."},
+            {"role": "user", "content": f"Transcript:\n{live_context}\n\nQuestion: {question}"},
+        ],
+        temperature=0,
+        max_tokens=500,
+    )
+
+    return response.choices[0].message.content
+
+
+def execute_parsed_query(driver, parsed: Dict, live_context: Optional[str] = None,
+                         question: Optional[str] = None) -> Dict:
     """Execute a parsed query against Neo4j."""
     query_type = parsed.get("type", "briefing")
 
-    if query_type == "briefing":
+    if query_type == "transcript_search":
+        if not live_context:
+            return {"type": "error", "data": {"error": "No live transcript available"}}
+        keywords = parsed.get("keywords", [])
+        answer = search_live_transcript(question or "", live_context, keywords)
+        return {"type": "transcript_search", "data": {"answer": answer, "keywords": keywords}}
+    elif query_type == "briefing":
         return {"type": "briefing", "data": person_briefing(driver, parsed["person"])}
     elif query_type == "co_attendees":
         limit = parsed.get("limit", 20)
@@ -306,6 +337,9 @@ def format_response(result: Dict) -> str:
 
     if query_type == "error":
         return data.get("error", "Unknown error")
+
+    if query_type == "transcript_search":
+        return data.get("answer", "No answer from transcript search.")
 
     if query_type == "briefing":
         if "error" in data:
@@ -383,6 +417,7 @@ def format_response(result: Dict) -> str:
 class QueryRequest(BaseModel):
     question: str
     context_person: Optional[str] = None
+    live_context: Optional[str] = None  # Rolling transcript from current call
 
 
 @app.get("/briefing")
@@ -402,14 +437,15 @@ def briefing_endpoint(person: str = Query(..., description="Person name to look 
 @app.post("/query")
 def query_endpoint(req: QueryRequest):
     """Natural language question -> graph answer."""
-    logger.info(f"Query: {req.question} (context: {req.context_person})")
+    logger.info(f"Query: {req.question} (context: {req.context_person}, live_context: {bool(req.live_context)})")
 
-    parsed = parse_query_with_llm(req.question, req.context_person)
+    parsed = parse_query_with_llm(req.question, req.context_person, req.live_context)
     logger.info(f"Parsed: {parsed}")
 
     driver = create_driver()
     try:
-        result = execute_parsed_query(driver, parsed)
+        result = execute_parsed_query(driver, parsed, live_context=req.live_context,
+                                      question=req.question)
         formatted = format_response(result)
         return {
             "question": req.question,
