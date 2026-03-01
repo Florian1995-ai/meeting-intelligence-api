@@ -527,7 +527,9 @@ async def ws_transcribe(ws: WebSocket):
     dg_headers = {"Authorization": f"Token {dg_key}"}
 
     try:
-        async with websockets.connect(dg_url, extra_headers=dg_headers) as dg_ws:
+        async with websockets.connect(
+            dg_url, additional_headers=dg_headers
+        ) as dg_ws:
             logger.info("Connected to Deepgram upstream")
 
             async def forward_audio():
@@ -545,6 +547,8 @@ async def ws_transcribe(ws: WebSocket):
                 """Deepgram -> Browser: forward transcript JSON."""
                 try:
                     async for message in dg_ws:
+                        if isinstance(message, bytes):
+                            message = message.decode("utf-8")
                         await ws.send_text(message)
                 except Exception as e:
                     logger.warning(f"Transcript forward error: {e}")

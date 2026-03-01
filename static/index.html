@@ -172,16 +172,24 @@
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .briefing-result {
     display: none;
-    padding: 12px;
+    padding: 14px;
     background: #0f0f1a;
     border-radius: 8px;
     font-size: 13px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    max-height: 200px;
+    line-height: 1.6;
+    max-height: 300px;
     overflow-y: auto;
   }
   .briefing-result.visible { display: block; }
+  .briefing-name { font-size: 16px; font-weight: 700; color: #7b8cde; }
+  .briefing-category { font-size: 12px; color: #888; margin-left: 8px; }
+  .briefing-meta { color: #999; font-size: 12px; margin: 6px 0 12px 0; }
+  .briefing-section-title { font-size: 11px; text-transform: uppercase; color: #7b8cde; letter-spacing: 0.5px; margin: 10px 0 6px 0; font-weight: 600; }
+  .briefing-meeting { padding: 3px 0; color: #ccc; }
+  .briefing-meeting-date { color: #888; display: inline-block; width: 90px; }
+  .briefing-connection { padding: 3px 0; color: #ccc; }
+  .briefing-connection-count { color: #7b8cde; font-weight: 600; }
+  .briefing-connection-cat { color: #666; font-size: 11px; }
 
   /* Query */
   .query-section { }
@@ -539,29 +547,37 @@ async function fetchBriefing() {
     const data = await resp.json();
 
     if (data.error) {
-      result.textContent = data.error;
+      result.innerHTML = `<span style="color:#dc3545">${escapeHtml(data.error)}</span>`;
     } else {
       const p = data.person || {};
-      let text = `${p.name || '?'} (${p.category || '?'})\n`;
-      text += `Meetings: ${p.total_meetings || 0} | Last seen: ${p.last_seen || 'N/A'}\n`;
+      const cat = (p.category || '?').replace(/^\d+/, '');
+      const relType = p.relationship_type ? ` &middot; ${escapeHtml(p.relationship_type)}` : '';
+
+      let html = `<div class="briefing-name">${escapeHtml(p.name || '?')}<span class="briefing-category">${escapeHtml(cat)}</span></div>`;
+      html += `<div class="briefing-meta">${p.total_meetings || 0} meetings &middot; First: ${p.first_seen || 'N/A'} &middot; Last: ${p.last_seen || 'N/A'}${relType}</div>`;
 
       const meetings = data.recent_meetings || [];
       if (meetings.length > 0) {
-        text += `\nRecent meetings:\n`;
+        html += `<div class="briefing-section-title">Recent Meetings</div>`;
         meetings.slice(0, 5).forEach(m => {
-          text += `  ${m.date || '?'} - ${m.meeting || '?'}\n`;
+          const meetName = (m.meeting || '').replace(/-/g, ' ').replace(/\d{4} \d{2} \d{2}$/, '').trim() || m.type || 'Meeting';
+          html += `<div class="briefing-meeting"><span class="briefing-meeting-date">${m.date || '?'}</span> ${escapeHtml(meetName)}</div>`;
         });
       }
 
-      const connections = data.top_connections || [];
-      if (connections.length > 0) {
-        text += `\nTop connections:\n`;
-        connections.slice(0, 5).forEach(c => {
-          text += `  ${c.name} (${c.shared} shared) [${c.category || '?'}]\n`;
+      const connections = (data.top_connections || []).concat(data.co_attendees || []);
+      const seen = new Set();
+      const uniqueConn = connections.filter(c => { if (seen.has(c.name)) return false; seen.add(c.name); return true; });
+      if (uniqueConn.length > 0) {
+        html += `<div class="briefing-section-title">Top Connections</div>`;
+        uniqueConn.slice(0, 8).forEach(c => {
+          const shared = c.shared || c.shared_meetings || 0;
+          const connCat = (c.category || '').replace(/^\d+/, '');
+          html += `<div class="briefing-connection">${escapeHtml(c.name)} <span class="briefing-connection-count">(${shared})</span> <span class="briefing-connection-cat">${escapeHtml(connCat)}</span></div>`;
         });
       }
 
-      result.textContent = text;
+      result.innerHTML = html;
     }
 
     result.classList.add('visible');
