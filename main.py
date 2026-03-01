@@ -520,14 +520,15 @@ async def ws_transcribe(ws: WebSocket):
         return
 
     dg_params = (
-        f"token={dg_key}"
-        "&model=nova-2-meeting&diarize=true&interim_results=true"
+        "model=nova-2-meeting&diarize=true&interim_results=true"
         "&smart_format=true&punctuate=true&language=en&utterance_end_ms=1000"
     )
     dg_url = f"wss://api.deepgram.com/v1/listen?{dg_params}"
 
     try:
-        async with websockets.connect(dg_url) as dg_ws:
+        async with websockets.connect(
+            dg_url, additional_headers={"Authorization": f"Token {dg_key}"}
+        ) as dg_ws:
             logger.info("Connected to Deepgram upstream")
 
             async def forward_audio():

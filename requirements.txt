@@ -3,4 +3,4 @@ uvicorn==0.34.0
 neo4j==5.27.0
 openai==1.59.9
 pydantic==2.10.5
-websockets==13.1
+websockets>=14.0
