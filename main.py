@@ -519,8 +519,12 @@ async def ws_transcribe(ws: WebSocket):
         await ws.close()
         return
 
+    # Get sample rate from browser (AudioContext may use 44100, 48000, etc.)
+    sample_rate = ws.query_params.get("sample_rate", "48000")
+    logger.info(f"Browser audio sample rate: {sample_rate}")
+
     dg_params = (
-        "model=nova-2-meeting&encoding=linear16&sample_rate=16000&channels=1"
+        f"model=nova-2-meeting&encoding=linear16&sample_rate={sample_rate}&channels=1"
         "&diarize=true&interim_results=true"
         "&smart_format=true&punctuate=true&language=en&utterance_end_ms=1000"
     )

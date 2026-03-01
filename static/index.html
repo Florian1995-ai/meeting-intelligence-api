@@ -350,19 +350,23 @@ async function startRecording() {
     // Get mic audio (native browser API — works on any web page)
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    // Connect WebSocket to our backend proxy (NOT directly to Deepgram)
+    // Set up AudioContext FIRST to know the actual sample rate
+    audioContext = new AudioContext();
+    const actualRate = audioContext.sampleRate;
+    console.log('[Meeting] AudioContext sample rate:', actualRate);
+
+    // Connect WebSocket with the actual sample rate so backend tells Deepgram correctly
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/transcribe`);
+    ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/transcribe?sample_rate=${actualRate}`);
+    ws.binaryType = 'arraybuffer';
 
     ws.onopen = () => {
       console.log('[Meeting] WebSocket connected to backend');
 
-      // Use AudioContext to send raw PCM (linear16) at 16kHz
-      // This is the most reliable format for Deepgram streaming
-      audioContext = new AudioContext({ sampleRate: 16000 });
       const source = audioContext.createMediaStreamSource(mediaStream);
       audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
 
+      let chunksSent = 0;
       audioProcessor.onaudioprocess = (e) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
           const float32 = e.inputBuffer.getChannelData(0);
@@ -373,6 +377,9 @@ async function startRecording() {
             int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
           }
           ws.send(int16.buffer);
+          chunksSent++;
+          if (chunksSent === 1) console.log('[Meeting] First audio chunk sent:', int16.byteLength, 'bytes');
+          if (chunksSent % 50 === 0) console.log('[Meeting] Chunks sent:', chunksSent);
         }
       };
 
