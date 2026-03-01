@@ -537,26 +537,21 @@ async def ws_transcribe(ws: WebSocket):
             async def forward_audio():
                 """Browser -> Deepgram: forward audio chunks."""
                 chunk_count = 0
+                total_bytes = 0
                 try:
                     while True:
-                        # Use receive() to handle both text and binary frames
-                        msg = await ws.receive()
-                        if msg["type"] == "websocket.receive":
-                            data = msg.get("bytes")
-                            if data:
-                                await dg_ws.send(data)
-                                chunk_count += 1
-                                if chunk_count == 1:
-                                    logger.info(f"First audio chunk: {len(data)} bytes")
-                                if chunk_count % 100 == 0:
-                                    logger.info(f"Audio chunks forwarded: {chunk_count}")
-                        elif msg["type"] == "websocket.disconnect":
-                            logger.info("Browser disconnected")
-                            break
+                        data = await ws.receive_bytes()
+                        await dg_ws.send(data)
+                        chunk_count += 1
+                        total_bytes += len(data)
+                        if chunk_count == 1:
+                            logger.info(f"First audio chunk received: {len(data)} bytes")
+                        if chunk_count % 40 == 0:  # ~every 10 seconds at 250ms intervals
+                            logger.info(f"Audio: {chunk_count} chunks, {total_bytes} bytes total")
                 except WebSocketDisconnect:
-                    logger.info(f"Browser disconnected after {chunk_count} chunks")
+                    logger.info(f"Browser disconnected after {chunk_count} chunks ({total_bytes} bytes)")
                 except Exception as e:
-                    logger.warning(f"Audio forward error after {chunk_count} chunks: {e}")
+                    logger.warning(f"Audio forward error after {chunk_count} chunks: {type(e).__name__}: {e}")
 
             async def forward_transcript():
                 """Deepgram -> Browser: forward transcript JSON."""
