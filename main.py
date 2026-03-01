@@ -520,7 +520,8 @@ async def ws_transcribe(ws: WebSocket):
         return
 
     dg_params = (
-        "model=nova-2-meeting&diarize=true&interim_results=true"
+        "model=nova-2-meeting&encoding=linear16&sample_rate=16000&channels=1"
+        "&diarize=true&interim_results=true"
         "&smart_format=true&punctuate=true&language=en&utterance_end_ms=1000"
     )
     dg_url = f"wss://api.deepgram.com/v1/listen?{dg_params}"

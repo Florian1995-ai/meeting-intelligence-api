@@ -325,7 +325,8 @@
 const API_BASE = window.location.origin;
 let ws = null;
 let mediaStream = null;
-let mediaRecorder = null;
+let audioContext = null;
+let audioProcessor = null;
 let transcriptLines = [];
 let isRecording = false;
 let startTime = null;
@@ -356,14 +357,27 @@ async function startRecording() {
     ws.onopen = () => {
       console.log('[Meeting] WebSocket connected to backend');
 
-      // Start MediaRecorder
-      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm;codecs=opus' });
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(e.data);
+      // Use AudioContext to send raw PCM (linear16) at 16kHz
+      // This is the most reliable format for Deepgram streaming
+      audioContext = new AudioContext({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      audioProcessor.onaudioprocess = (e) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          const float32 = e.inputBuffer.getChannelData(0);
+          // Convert Float32 [-1,1] to Int16 PCM
+          const int16 = new Int16Array(float32.length);
+          for (let i = 0; i < float32.length; i++) {
+            const s = Math.max(-1, Math.min(1, float32[i]));
+            int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          }
+          ws.send(int16.buffer);
         }
       };
-      mediaRecorder.start(250);
+
+      source.connect(audioProcessor);
+      audioProcessor.connect(audioContext.destination);
 
       // Update UI
       isRecording = true;
@@ -413,8 +427,8 @@ function stopRecording() {
   isRecording = false;
 
   if (costTimer) { clearInterval(costTimer); costTimer = null; }
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.stop(); }
-  mediaRecorder = null;
+  if (audioProcessor) { audioProcessor.disconnect(); audioProcessor = null; }
+  if (audioContext) { audioContext.close().catch(() => {}); audioContext = null; }
   if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
   if (ws) {
     if (ws.readyState === WebSocket.OPEN) { ws.close(); }
