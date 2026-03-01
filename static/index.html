@@ -99,13 +99,42 @@
   }
 
   /* Left: Transcript */
-  .transcript-panel { min-height: 500px; }
+  .transcript-panel { min-height: 200px; }
+  .panel-header-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .panel-header-toggle:hover { color: #9aa8f0; }
+  .collapse-icon {
+    font-size: 11px;
+    transition: transform 0.2s;
+    color: #666;
+  }
+  .collapse-icon.collapsed { transform: rotate(-90deg); }
+  .transcript-collapse-summary {
+    display: none;
+    font-size: 12px;
+    color: #666;
+    font-weight: 400;
+    margin-left: 12px;
+  }
+  .transcript-collapse-summary.visible { display: inline; }
+  .transcript-body-wrapper {
+    transition: max-height 0.3s ease;
+    overflow: hidden;
+  }
+  .transcript-body-wrapper.collapsed {
+    max-height: 0 !important;
+  }
   .transcript-area {
     font-family: 'SF Mono', 'Consolas', monospace;
     font-size: 13px;
     line-height: 1.6;
-    min-height: 400px;
-    max-height: 60vh;
+    min-height: 200px;
+    max-height: 45vh;
     overflow-y: auto;
   }
   .transcript-line { margin-bottom: 6px; }
@@ -122,6 +151,15 @@
     padding: 40px 20px;
     font-size: 14px;
   }
+  .note-line {
+    margin-bottom: 6px;
+    padding: 4px 8px;
+    background: #1e1e3a;
+    border-left: 3px solid #e6a817;
+    border-radius: 0 4px 4px 0;
+  }
+  .note-label { font-weight: 600; color: #e6a817; margin-right: 6px; font-size: 12px; }
+  .note-time { color: #666; font-size: 11px; margin-left: 8px; }
   .transcript-actions {
     display: none;
     gap: 8px;
@@ -139,6 +177,43 @@
     cursor: pointer;
   }
   .btn-small:hover { background: #2a2a4a; color: #fff; }
+
+  /* Notes Input */
+  .notes-input-area {
+    display: none;
+    padding: 10px 18px;
+    border-top: 1px solid #2a2a4a;
+    gap: 8px;
+  }
+  .notes-input-area.visible { display: flex; }
+  .notes-input-area textarea {
+    flex: 1;
+    padding: 8px 12px;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-size: 13px;
+    font-family: inherit;
+    resize: none;
+    min-height: 36px;
+    max-height: 80px;
+  }
+  .notes-input-area textarea::placeholder { color: #555; }
+  .notes-input-area textarea:focus { outline: none; border-color: #e6a817; }
+  .notes-input-area button {
+    padding: 8px 14px;
+    background: #e6a817;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    align-self: flex-end;
+  }
+  .notes-input-area button:hover { background: #d49a10; }
 
   /* Right: Intelligence */
   .intel-panel { display: flex; flex-direction: column; gap: 16px; }
@@ -190,6 +265,34 @@
   .briefing-connection { padding: 3px 0; color: #ccc; }
   .briefing-connection-count { color: #7b8cde; font-weight: 600; }
   .briefing-connection-cat { color: #666; font-size: 11px; }
+  .briefing-section-toggle {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .briefing-section-toggle:hover { color: #9aa8f0; }
+  .briefing-section-toggle .toggle-arrow { font-size: 9px; color: #666; transition: transform 0.2s; }
+  .briefing-section-toggle .toggle-arrow.collapsed { transform: rotate(-90deg); }
+  .briefing-section-body { overflow: hidden; }
+  .briefing-section-body.collapsed { display: none; }
+  .briefing-header-bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .briefing-stat { font-size: 11px; color: #666; }
+  .briefing-rel-type {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    background: #2a2a4a;
+    border-radius: 4px;
+    color: #aaa;
+    margin-left: 8px;
+  }
 
   /* Query */
   .query-section { }
@@ -265,23 +368,36 @@
         <span id="duration">00:00</span>
         <span id="cost">$0.0000</span>
       </div>
-      <button class="btn-small" id="test-btn" onclick="testTranscript()" style="color:#7b8cde">Test</button>
       <button class="mic-btn start" id="mic-btn" onclick="toggleMic()">Start Mic</button>
     </div>
   </div>
 
   <!-- Left: Live Transcript -->
   <div class="panel transcript-panel">
-    <div class="panel-header">Live Transcript</div>
-    <div class="panel-body">
-      <div class="transcript-area" id="transcript-area">
-        <div class="transcript-placeholder" id="transcript-placeholder">
-          Click "Start Mic" to begin live transcription.<br>
-          Works with any meeting -- Zoom, Meet, phone calls.
-        </div>
-        <div id="transcript-lines"></div>
-        <div class="transcript-interim" id="transcript-interim"></div>
+    <div class="panel-header">
+      <div class="panel-header-toggle" onclick="toggleTranscriptCollapse()">
+        <span>
+          <span class="collapse-icon" id="collapse-icon">&#9660;</span>
+          Live Transcript
+          <span class="transcript-collapse-summary" id="collapse-summary"></span>
+        </span>
       </div>
+    </div>
+    <div class="transcript-body-wrapper" id="transcript-body">
+      <div class="panel-body">
+        <div class="transcript-area" id="transcript-area">
+          <div class="transcript-placeholder" id="transcript-placeholder">
+            Click "Start Mic" to begin live transcription.<br>
+            Works with any meeting -- Zoom, Meet, phone calls.
+          </div>
+          <div id="transcript-lines"></div>
+          <div class="transcript-interim" id="transcript-interim"></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes-input-area" id="notes-input-area">
+      <textarea id="note-text" placeholder="Add a note... (Ctrl+Enter)" rows="1"></textarea>
+      <button onclick="addNote()">+ Note</button>
     </div>
     <div class="transcript-actions" id="transcript-actions">
       <button class="btn-small" onclick="copyTranscript()">Copy</button>
@@ -327,10 +443,11 @@ let ws = null;
 let mediaStream = null;
 let audioContext = null;
 let audioProcessor = null;
-let transcriptLines = [];
+let transcriptLines = [];  // {speaker, text, timestamp, type:'transcript'|'note'}
 let isRecording = false;
 let startTime = null;
 let costTimer = null;
+let transcriptCollapsed = false;
 
 // =================== MIC CONTROL ===================
 async function toggleMic() {
@@ -395,6 +512,7 @@ async function startRecording() {
       document.getElementById('rec-dot').classList.add('active');
       document.getElementById('transcript-placeholder').style.display = 'none';
       document.getElementById('transcript-actions').classList.add('visible');
+      document.getElementById('notes-input-area').classList.add('visible');
       costTimer = setInterval(updateCost, 1000);
     };
 
@@ -467,7 +585,7 @@ function handleTranscript(event) {
     const isFinal = data.is_final;
 
     if (isFinal) {
-      transcriptLines.push({ speaker, text, timestamp: Date.now() });
+      transcriptLines.push({ speaker, text, timestamp: Date.now(), type: 'transcript' });
       renderTranscript();
       document.getElementById('transcript-interim').textContent = '';
     } else {
@@ -488,6 +606,14 @@ function renderTranscript() {
   const container = document.getElementById('transcript-lines');
 
   container.innerHTML = transcriptLines.map(line => {
+    if (line.type === 'note') {
+      const time = formatTimestamp(line.timestamp);
+      return `<div class="note-line">
+        <span class="note-label">NOTE:</span>
+        <span>${escapeHtml(line.text)}</span>
+        <span class="note-time">${time}</span>
+      </div>`;
+    }
     const cls = line.speaker !== null ? colors[line.speaker % colors.length] : 'speaker-0';
     const label = line.speaker !== null ? `Speaker ${line.speaker}` : 'Speaker';
     return `<div class="transcript-line">
@@ -495,6 +621,16 @@ function renderTranscript() {
       <span>${escapeHtml(line.text)}</span>
     </div>`;
   }).join('');
+
+  updateCollapseSummary();
+}
+
+function formatTimestamp(ts) {
+  if (!startTime) return '';
+  const elapsed = Math.floor((ts - startTime) / 1000);
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
+  return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 
 function escapeHtml(str) {
@@ -508,6 +644,7 @@ function copyTranscript() {
   if (transcriptLines.length === 0) { showToast('No transcript to copy'); return; }
 
   const text = transcriptLines.map(l => {
+    if (l.type === 'note') return `[NOTE] ${l.text}`;
     const label = l.speaker !== null ? `Speaker ${l.speaker}` : 'Speaker';
     return `${label}: ${l.text}`;
   }).join('\n');
@@ -536,9 +673,11 @@ function clearTranscript() {
   transcriptLines = [];
   document.getElementById('transcript-lines').innerHTML = '';
   document.getElementById('transcript-interim').textContent = '';
+  updateCollapseSummary();
   if (!isRecording) {
     document.getElementById('transcript-placeholder').style.display = 'block';
     document.getElementById('transcript-actions').classList.remove('visible');
+    document.getElementById('notes-input-area').classList.remove('visible');
   }
 }
 
@@ -548,6 +687,7 @@ function getTranscriptContext(minutes) {
   const recent = transcriptLines.filter(l => l.timestamp >= cutoff);
   const lines = recent.length > 0 ? recent : transcriptLines.slice(-20);
   return lines.map(l => {
+    if (l.type === 'note') return `[NOTE] ${l.text}`;
     const label = l.speaker !== null ? `Speaker ${l.speaker}` : 'Speaker';
     return `${label}: ${l.text}`;
   }).join('\n');
@@ -575,30 +715,46 @@ async function fetchBriefing() {
     } else {
       const p = data.person || {};
       const cat = (p.category || '?').replace(/^\d+/, '');
-      const relType = p.relationship_type ? ` &middot; ${escapeHtml(p.relationship_type)}` : '';
+      const relType = p.relationship_type ? `<span class="briefing-rel-type">${escapeHtml(p.relationship_type)}</span>` : '';
 
-      let html = `<div class="briefing-name">${escapeHtml(p.name || '?')}<span class="briefing-category">${escapeHtml(cat)}</span></div>`;
-      html += `<div class="briefing-meta">${p.total_meetings || 0} meetings &middot; First: ${p.first_seen || 'N/A'} &middot; Last: ${p.last_seen || 'N/A'}${relType}</div>`;
+      let html = `<div class="briefing-header-bar">
+        <div><span class="briefing-name">${escapeHtml(p.name || '?')}</span><span class="briefing-category">${escapeHtml(cat)}</span>${relType}</div>
+      </div>`;
+      html += `<div class="briefing-meta">
+        <span class="briefing-stat">${p.total_meetings || 0} meetings</span> &middot;
+        <span class="briefing-stat">First: ${p.first_seen || 'N/A'}</span> &middot;
+        <span class="briefing-stat">Last: ${p.last_seen || 'N/A'}</span>
+      </div>`;
 
       const meetings = data.recent_meetings || [];
       if (meetings.length > 0) {
-        html += `<div class="briefing-section-title">Recent Meetings</div>`;
-        meetings.slice(0, 5).forEach(m => {
+        const meetId = 'briefing-meetings-' + Date.now();
+        html += `<div class="briefing-section-title briefing-section-toggle" onclick="toggleBriefingSection('${meetId}', this)">
+          <span class="toggle-arrow">&#9660;</span> Recent Meetings (${meetings.length})
+        </div>`;
+        html += `<div class="briefing-section-body" id="${meetId}">`;
+        meetings.slice(0, 8).forEach(m => {
           const meetName = (m.meeting || '').replace(/-/g, ' ').replace(/\d{4} \d{2} \d{2}$/, '').trim() || m.type || 'Meeting';
           html += `<div class="briefing-meeting"><span class="briefing-meeting-date">${m.date || '?'}</span> ${escapeHtml(meetName)}</div>`;
         });
+        html += '</div>';
       }
 
       const connections = (data.top_connections || []).concat(data.co_attendees || []);
       const seen = new Set();
       const uniqueConn = connections.filter(c => { if (seen.has(c.name)) return false; seen.add(c.name); return true; });
       if (uniqueConn.length > 0) {
-        html += `<div class="briefing-section-title">Top Connections</div>`;
-        uniqueConn.slice(0, 8).forEach(c => {
+        const connId = 'briefing-conn-' + Date.now();
+        html += `<div class="briefing-section-title briefing-section-toggle" onclick="toggleBriefingSection('${connId}', this)">
+          <span class="toggle-arrow">&#9660;</span> Top Connections (${uniqueConn.length})
+        </div>`;
+        html += `<div class="briefing-section-body" id="${connId}">`;
+        uniqueConn.slice(0, 10).forEach(c => {
           const shared = c.shared || c.shared_meetings || 0;
           const connCat = (c.category || '').replace(/^\d+/, '');
           html += `<div class="briefing-connection">${escapeHtml(c.name)} <span class="briefing-connection-count">(${shared})</span> <span class="briefing-connection-cat">${escapeHtml(connCat)}</span></div>`;
         });
+        html += '</div>';
       }
 
       result.innerHTML = html;
@@ -648,6 +804,19 @@ async function submitQuery() {
   }
 }
 
+// =================== BRIEFING SECTIONS ===================
+function toggleBriefingSection(sectionId, toggleEl) {
+  const section = document.getElementById(sectionId);
+  const arrow = toggleEl.querySelector('.toggle-arrow');
+  if (section.classList.contains('collapsed')) {
+    section.classList.remove('collapsed');
+    arrow.classList.remove('collapsed');
+  } else {
+    section.classList.add('collapsed');
+    arrow.classList.add('collapsed');
+  }
+}
+
 // Enter key to submit query
 document.getElementById('query-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuery(); }
@@ -656,25 +825,65 @@ document.getElementById('person-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); fetchBriefing(); }
 });
 
-// =================== TEST MODE ===================
-function testTranscript() {
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const testWs = new WebSocket(`${wsProtocol}//${window.location.host}/ws/test`);
+// =================== TRANSCRIPT COLLAPSE ===================
+function toggleTranscriptCollapse() {
+  transcriptCollapsed = !transcriptCollapsed;
+  const body = document.getElementById('transcript-body');
+  const icon = document.getElementById('collapse-icon');
+  const summary = document.getElementById('collapse-summary');
 
-  testWs.onopen = () => {
-    console.log('[Test] Connected to test WebSocket');
-    document.getElementById('transcript-placeholder').style.display = 'none';
-    document.getElementById('transcript-actions').classList.add('visible');
-  };
-
-  testWs.onmessage = (event) => {
-    console.log('[Test] Message:', event.data.substring(0, 200));
-    handleTranscript(event);
-  };
-
-  testWs.onerror = (e) => console.error('[Test] Error:', e);
-  testWs.onclose = () => console.log('[Test] Closed');
+  if (transcriptCollapsed) {
+    body.classList.add('collapsed');
+    icon.classList.add('collapsed');
+    summary.classList.add('visible');
+    updateCollapseSummary();
+  } else {
+    body.classList.remove('collapsed');
+    icon.classList.remove('collapsed');
+    summary.classList.remove('visible');
+    // Auto-scroll to bottom after expanding
+    setTimeout(() => {
+      const area = document.getElementById('transcript-area');
+      area.scrollTop = area.scrollHeight;
+    }, 50);
+  }
 }
+
+function updateCollapseSummary() {
+  const summary = document.getElementById('collapse-summary');
+  const lineCount = transcriptLines.filter(l => l.type === 'transcript').length;
+  const noteCount = transcriptLines.filter(l => l.type === 'note').length;
+  const dur = document.getElementById('duration').textContent;
+  let text = `${lineCount} lines`;
+  if (noteCount > 0) text += ` + ${noteCount} notes`;
+  if (isRecording) text += ` | ${dur} | Recording...`;
+  summary.textContent = text;
+}
+
+// =================== NOTES ===================
+function addNote() {
+  const textarea = document.getElementById('note-text');
+  const text = textarea.value.trim();
+  if (!text) return;
+
+  transcriptLines.push({ speaker: null, text, timestamp: Date.now(), type: 'note' });
+  textarea.value = '';
+  renderTranscript();
+
+  // Auto-scroll
+  const area = document.getElementById('transcript-area');
+  area.scrollTop = area.scrollHeight;
+
+  // If transcript is collapsed, briefly expand to show the note was added
+  if (transcriptCollapsed) {
+    updateCollapseSummary();
+  }
+}
+
+// Ctrl+Enter to add note
+document.getElementById('note-text').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); addNote(); }
+});
 
 // =================== COST TIMER ===================
 function updateCost() {
