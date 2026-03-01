@@ -449,14 +449,21 @@ class QueryRequest(BaseModel):
 def briefing_endpoint(person: str = Query(..., description="Person name to look up")):
     """Full person briefing from Neo4j."""
     logger.info(f"Briefing request for: {person}")
-    driver = create_driver()
     try:
-        result = person_briefing(driver, person)
-        co = find_co_attendees(driver, person, limit=10)
-        result["co_attendees"] = co
-        return result
-    finally:
-        driver.close()
+        driver = create_driver()
+        try:
+            result = person_briefing(driver, person)
+            co = find_co_attendees(driver, person, limit=10)
+            result["co_attendees"] = co
+            return result
+        finally:
+            driver.close()
+    except Exception as e:
+        logger.error(f"Briefing error: {e}")
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=500,
+        )
 
 
 @app.post("/query")
@@ -464,22 +471,29 @@ def query_endpoint(req: QueryRequest):
     """Natural language question -> graph answer."""
     logger.info(f"Query: {req.question} (context: {req.context_person}, live_context: {bool(req.live_context)})")
 
-    parsed = parse_query_with_llm(req.question, req.context_person, req.live_context)
-    logger.info(f"Parsed: {parsed}")
-
-    driver = create_driver()
     try:
-        result = execute_parsed_query(driver, parsed, live_context=req.live_context,
-                                      question=req.question)
-        formatted = format_response(result)
-        return {
-            "question": req.question,
-            "parsed": parsed,
-            "result": result.get("data"),
-            "formatted": formatted,
-        }
-    finally:
-        driver.close()
+        parsed = parse_query_with_llm(req.question, req.context_person, req.live_context)
+        logger.info(f"Parsed: {parsed}")
+
+        driver = create_driver()
+        try:
+            result = execute_parsed_query(driver, parsed, live_context=req.live_context,
+                                          question=req.question)
+            formatted = format_response(result)
+            return {
+                "question": req.question,
+                "parsed": parsed,
+                "result": result.get("data"),
+                "formatted": formatted,
+            }
+        finally:
+            driver.close()
+    except Exception as e:
+        logger.error(f"Query error: {e}")
+        return JSONResponse(
+            content={"error": str(e), "formatted": f"Error: {str(e)}"},
+            status_code=500,
+        )
 
 
 @app.get("/health")

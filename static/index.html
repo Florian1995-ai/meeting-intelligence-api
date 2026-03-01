@@ -708,6 +708,16 @@ async function fetchBriefing() {
 
   try {
     const resp = await fetch(`${API_BASE}/briefing?person=${encodeURIComponent(name)}`);
+
+    if (!resp.ok) {
+      let errMsg;
+      try { const e = await resp.json(); errMsg = e.error || e.detail || `HTTP ${resp.status}`; }
+      catch (_) { errMsg = `HTTP ${resp.status}: ${resp.statusText}`; }
+      result.innerHTML = `<span style="color:#dc3545">${escapeHtml('Error: ' + errMsg)}</span>`;
+      result.classList.add('visible');
+      return;
+    }
+
     const data = await resp.json();
 
     if (data.error) {
@@ -793,6 +803,15 @@ async function submitQuery() {
         live_context: liveContext,
       }),
     });
+
+    if (!resp.ok) {
+      let errMsg;
+      try { const e = await resp.json(); errMsg = e.formatted || e.error || e.detail || `HTTP ${resp.status}`; }
+      catch (_) { errMsg = `HTTP ${resp.status}: ${resp.statusText}`; }
+      result.textContent = 'Error: ' + errMsg;
+      result.classList.add('visible');
+      return;
+    }
 
     const data = await resp.json();
     result.textContent = data.formatted || JSON.stringify(data.result, null, 2);
