@@ -531,26 +531,46 @@ async def ws_transcribe(ws: WebSocket):
         ) as dg_ws:
             logger.info("Connected to Deepgram upstream")
 
+            # Tell browser Deepgram is ready
+            await ws.send_text(json.dumps({"type": "status", "message": "Connected to Deepgram"}))
+
             async def forward_audio():
                 """Browser -> Deepgram: forward audio chunks."""
+                chunk_count = 0
                 try:
                     while True:
-                        data = await ws.receive_bytes()
-                        await dg_ws.send(data)
+                        # Use receive() to handle both text and binary frames
+                        msg = await ws.receive()
+                        if msg["type"] == "websocket.receive":
+                            data = msg.get("bytes")
+                            if data:
+                                await dg_ws.send(data)
+                                chunk_count += 1
+                                if chunk_count == 1:
+                                    logger.info(f"First audio chunk: {len(data)} bytes")
+                                if chunk_count % 100 == 0:
+                                    logger.info(f"Audio chunks forwarded: {chunk_count}")
+                        elif msg["type"] == "websocket.disconnect":
+                            logger.info("Browser disconnected")
+                            break
                 except WebSocketDisconnect:
-                    logger.info("Browser disconnected")
+                    logger.info(f"Browser disconnected after {chunk_count} chunks")
                 except Exception as e:
-                    logger.warning(f"Audio forward error: {e}")
+                    logger.warning(f"Audio forward error after {chunk_count} chunks: {e}")
 
             async def forward_transcript():
                 """Deepgram -> Browser: forward transcript JSON."""
+                msg_count = 0
                 try:
                     async for message in dg_ws:
                         if isinstance(message, bytes):
                             message = message.decode("utf-8")
                         await ws.send_text(message)
+                        msg_count += 1
+                        if msg_count == 1:
+                            logger.info(f"First Deepgram response forwarded")
                 except Exception as e:
-                    logger.warning(f"Transcript forward error: {e}")
+                    logger.warning(f"Transcript forward error after {msg_count} msgs: {e}")
 
             # Run both directions concurrently
             audio_task = asyncio.create_task(forward_audio())

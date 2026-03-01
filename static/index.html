@@ -431,6 +431,7 @@ function handleTranscript(event) {
   try {
     const data = JSON.parse(event.data);
     if (data.error) { showToast(data.error); return; }
+    if (data.type === 'status') { console.log('[Meeting]', data.message); return; }
 
     const channel = data.channel;
     if (!channel || !channel.alternatives || !channel.alternatives[0]) return;
