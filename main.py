@@ -597,6 +597,44 @@ async def ws_transcribe(ws: WebSocket):
         logger.info("Transcription WebSocket closed")
 
 
+@app.websocket("/ws/test")
+async def ws_test(ws: WebSocket):
+    """Test WebSocket — sends fake Deepgram-format transcript to verify frontend."""
+    await ws.accept()
+    import time
+
+    # Send a status message
+    await ws.send_text(json.dumps({"type": "status", "message": "Test mode: sending fake transcripts"}))
+    await asyncio.sleep(1)
+
+    # Send 3 fake Deepgram-format transcript messages
+    for i, text in enumerate(["Hello, this is a test.", "The live transcript is working.", "Meeting Intelligence is online."]):
+        fake_msg = {
+            "type": "Results",
+            "channel_index": [0, 1],
+            "duration": 1.5,
+            "start": i * 2.0,
+            "is_final": True,
+            "speech_final": True,
+            "channel": {
+                "alternatives": [{
+                    "transcript": text,
+                    "confidence": 0.98,
+                    "words": [{"word": text.split()[0], "start": 0, "end": 0.5, "confidence": 0.98, "speaker": 0, "punctuated_word": text.split()[0]}]
+                }]
+            }
+        }
+        await ws.send_text(json.dumps(fake_msg))
+        await asyncio.sleep(1)
+
+    # Keep connection open until browser disconnects
+    try:
+        while True:
+            await ws.receive_text()
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Transcript Storage
 # ---------------------------------------------------------------------------

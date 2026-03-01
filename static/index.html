@@ -265,6 +265,7 @@
         <span id="duration">00:00</span>
         <span id="cost">$0.0000</span>
       </div>
+      <button class="btn-small" id="test-btn" onclick="testTranscript()" style="color:#7b8cde">Test</button>
       <button class="mic-btn start" id="mic-btn" onclick="toggleMic()">Start Mic</button>
     </div>
   </div>
@@ -377,6 +378,7 @@ async function startRecording() {
     };
 
     ws.onmessage = (event) => {
+      console.log('[WS] Message received:', event.data.substring(0, 200));
       handleTranscript(event);
     };
 
@@ -632,6 +634,26 @@ document.getElementById('query-input').addEventListener('keydown', (e) => {
 document.getElementById('person-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); fetchBriefing(); }
 });
+
+// =================== TEST MODE ===================
+function testTranscript() {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const testWs = new WebSocket(`${wsProtocol}//${window.location.host}/ws/test`);
+
+  testWs.onopen = () => {
+    console.log('[Test] Connected to test WebSocket');
+    document.getElementById('transcript-placeholder').style.display = 'none';
+    document.getElementById('transcript-actions').classList.add('visible');
+  };
+
+  testWs.onmessage = (event) => {
+    console.log('[Test] Message:', event.data.substring(0, 200));
+    handleTranscript(event);
+  };
+
+  testWs.onerror = (e) => console.error('[Test] Error:', e);
+  testWs.onclose = () => console.log('[Test] Closed');
+}
 
 // =================== COST TIMER ===================
 function updateCost() {
