@@ -1,10 +1,14 @@
 """
-Meeting Intelligence Query API — Standalone FastAPI
+Meeting Intelligence API + Live Transcription Web App
 
-Two web endpoints for querying the Neo4j transcript knowledge graph:
-1. GET  /briefing?person={name}  — Full person briefing (meetings, connections)
-2. POST /query                   — Natural language question -> graph answer
-3. GET  /health                  — Neo4j connectivity check
+Endpoints:
+  GET  /                        — Meetings web app (live transcription + chat)
+  GET  /briefing?person={name}  — Full person briefing (meetings, connections)
+  POST /query                   — Natural language question -> graph answer
+  WS   /ws/transcribe           — Deepgram WebSocket proxy (mic audio -> transcript)
+  POST /transcript/save         — Save a meeting transcript
+  GET  /transcripts             — List saved transcripts
+  GET  /health                  — Neo4j connectivity check
 
 Deploy via Coolify (Docker) on the same VPS as Neo4j for low-latency queries.
 
@@ -13,22 +17,28 @@ Environment variables required:
     NEO4J_USER         neo4j
     NEO4J_PASSWORD     <password>
     OPENAI_API_KEY     <key>
+    DEEPGRAM_API_KEY   <key>
 """
 
 import os
 import json
 import logging
+import asyncio
+from pathlib import Path
+from datetime import datetime
 from typing import List, Dict, Optional, Any
+from uuid import uuid4
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("meeting-intelligence")
 
-app = FastAPI(title="Meeting Intelligence API", version="1.0.0")
+app = FastAPI(title="Meeting Intelligence API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,6 +46,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Transcript storage directory
+TRANSCRIPT_DIR = Path("/data/transcripts")
+TRANSCRIPT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ---------------------------------------------------------------------------
@@ -481,3 +495,154 @@ def health_endpoint():
             content={"status": "error", "message": str(e)},
             status_code=500,
         )
+
+
+# ---------------------------------------------------------------------------
+# WebSocket Proxy — Deepgram Transcription
+# ---------------------------------------------------------------------------
+
+@app.websocket("/ws/transcribe")
+async def ws_transcribe(ws: WebSocket):
+    """Proxy mic audio from browser to Deepgram, return transcript JSON.
+
+    The Deepgram API key stays server-side — browser never sees it.
+    Browser sends raw audio blobs, receives transcript JSON objects.
+    """
+    await ws.accept()
+    logger.info("WebSocket client connected for transcription")
+
+    import websockets
+
+    dg_key = os.environ.get("DEEPGRAM_API_KEY", "")
+    if not dg_key:
+        await ws.send_json({"error": "DEEPGRAM_API_KEY not configured on server"})
+        await ws.close()
+        return
+
+    dg_params = (
+        "model=nova-2-meeting&diarize=true&interim_results=true"
+        "&smart_format=true&punctuate=true&language=en&utterance_end_ms=1000"
+    )
+    dg_url = f"wss://api.deepgram.com/v1/listen?{dg_params}"
+    dg_headers = {"Authorization": f"Token {dg_key}"}
+
+    try:
+        async with websockets.connect(dg_url, extra_headers=dg_headers) as dg_ws:
+            logger.info("Connected to Deepgram upstream")
+
+            async def forward_audio():
+                """Browser -> Deepgram: forward audio chunks."""
+                try:
+                    while True:
+                        data = await ws.receive_bytes()
+                        await dg_ws.send(data)
+                except WebSocketDisconnect:
+                    logger.info("Browser disconnected")
+                except Exception as e:
+                    logger.warning(f"Audio forward error: {e}")
+
+            async def forward_transcript():
+                """Deepgram -> Browser: forward transcript JSON."""
+                try:
+                    async for message in dg_ws:
+                        await ws.send_text(message)
+                except Exception as e:
+                    logger.warning(f"Transcript forward error: {e}")
+
+            # Run both directions concurrently
+            audio_task = asyncio.create_task(forward_audio())
+            transcript_task = asyncio.create_task(forward_transcript())
+
+            done, pending = await asyncio.wait(
+                [audio_task, transcript_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for task in pending:
+                task.cancel()
+
+    except Exception as e:
+        logger.error(f"Deepgram proxy error: {e}")
+        try:
+            await ws.send_json({"error": f"Deepgram connection failed: {str(e)}"})
+        except Exception:
+            pass
+    finally:
+        try:
+            await ws.close()
+        except Exception:
+            pass
+        logger.info("Transcription WebSocket closed")
+
+
+# ---------------------------------------------------------------------------
+# Transcript Storage
+# ---------------------------------------------------------------------------
+
+class TranscriptSaveRequest(BaseModel):
+    person: Optional[str] = None
+    date: Optional[str] = None
+    lines: List[Dict[str, Any]]  # [{speaker, text, timestamp}, ...]
+
+
+@app.post("/transcript/save")
+def save_transcript(req: TranscriptSaveRequest):
+    """Save a meeting transcript to persistent storage."""
+    transcript_id = uuid4().hex[:12]
+    ts = req.date or datetime.now().strftime("%Y-%m-%d_%H-%M")
+    person_label = (req.person or "unknown").replace(" ", "_")
+
+    filename = f"{ts}_{person_label}_{transcript_id}.json"
+    filepath = TRANSCRIPT_DIR / filename
+
+    data = {
+        "id": transcript_id,
+        "person": req.person,
+        "date": ts,
+        "saved_at": datetime.now().isoformat(),
+        "line_count": len(req.lines),
+        "lines": req.lines,
+    }
+
+    filepath.write_text(json.dumps(data, indent=2, default=str))
+    logger.info(f"Saved transcript: {filename} ({len(req.lines)} lines)")
+
+    return {"id": transcript_id, "filename": filename, "lines": len(req.lines)}
+
+
+@app.get("/transcripts")
+def list_transcripts():
+    """List all saved transcripts."""
+    transcripts = []
+    for f in sorted(TRANSCRIPT_DIR.glob("*.json"), reverse=True):
+        try:
+            data = json.loads(f.read_text())
+            transcripts.append({
+                "id": data.get("id"),
+                "person": data.get("person"),
+                "date": data.get("date"),
+                "saved_at": data.get("saved_at"),
+                "lines": data.get("line_count", 0),
+                "filename": f.name,
+            })
+        except Exception:
+            continue
+    return {"transcripts": transcripts}
+
+
+# ---------------------------------------------------------------------------
+# Static File Serving — Meetings Web App
+# ---------------------------------------------------------------------------
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+@app.get("/")
+async def serve_app():
+    """Serve the meetings web app."""
+    index = STATIC_DIR / "index.html"
+    if index.exists():
+        return FileResponse(index, media_type="text/html")
+    return JSONResponse({"error": "Frontend not deployed"}, status_code=404)
+
+# Mount static assets (CSS, JS, images) if the directory exists
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

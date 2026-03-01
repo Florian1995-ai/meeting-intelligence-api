@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Intelligence</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #1a1a2e;
+    border-radius: 12px;
+    border: 1px solid #2a2a4a;
+  }
+  .header h1 { font-size: 20px; color: #7b8cde; font-weight: 600; }
+  .header-controls { display: flex; align-items: center; gap: 16px; }
+  .mic-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mic-btn.start { background: #4357AD; color: white; }
+  .mic-btn.start:hover { background: #354693; }
+  .mic-btn.stop { background: #dc3545; color: white; }
+  .mic-btn.stop:hover { background: #c82333; }
+  .mic-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status-info {
+    font-size: 13px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .rec-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #555;
+    display: inline-block;
+  }
+  .rec-dot.active {
+    background: #dc3545;
+    animation: pulse-dot 1.5s infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Panels */
+  .panel {
+    background: #1a1a2e;
+    border-radius: 12px;
+    border: 1px solid #2a2a4a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid #2a2a4a;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #7b8cde;
+  }
+  .panel-body {
+    padding: 16px 18px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* Left: Transcript */
+  .transcript-panel { min-height: 500px; }
+  .transcript-area {
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 400px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .transcript-line { margin-bottom: 6px; }
+  .transcript-speaker { font-weight: 600; margin-right: 6px; }
+  .speaker-0 { color: #7b8cde; }
+  .speaker-1 { color: #28a745; }
+  .speaker-2 { color: #e67e22; }
+  .speaker-3 { color: #9b59b6; }
+  .speaker-4 { color: #e74c3c; }
+  .transcript-interim { color: #666; font-style: italic; }
+  .transcript-placeholder {
+    color: #444;
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 14px;
+  }
+  .transcript-actions {
+    display: none;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid #2a2a4a;
+  }
+  .transcript-actions.visible { display: flex; }
+  .btn-small {
+    padding: 6px 14px;
+    border: 1px solid #3a3a5a;
+    background: transparent;
+    color: #aaa;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-small:hover { background: #2a2a4a; color: #fff; }
+
+  /* Right: Intelligence */
+  .intel-panel { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Briefing */
+  .briefing-section { }
+  .input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .input-row input {
+    flex: 1;
+    padding: 10px 14px;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 14px;
+  }
+  .input-row input::placeholder { color: #555; }
+  .input-row input:focus { outline: none; border-color: #7b8cde; }
+  .btn-primary {
+    padding: 10px 20px;
+    background: #4357AD;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { background: #354693; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .briefing-result {
+    display: none;
+    padding: 12px;
+    background: #0f0f1a;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .briefing-result.visible { display: block; }
+
+  /* Query */
+  .query-section { }
+  .query-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+    margin-bottom: 8px;
+  }
+  .query-input::placeholder { color: #555; }
+  .query-input:focus { outline: none; border-color: #7b8cde; }
+  .query-result {
+    display: none;
+    padding: 12px;
+    background: #0f0f1a;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 8px;
+  }
+  .query-result.visible { display: block; }
+
+  /* Loading */
+  .loading {
+    display: none;
+    color: #7b8cde;
+    font-size: 13px;
+    padding: 8px 0;
+  }
+  .loading.visible { display: block; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #333;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: transform 0.3s;
+    z-index: 1000;
+  }
+  .toast.visible { transform: translateX(-50%) translateY(0); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .container { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>MEETING INTELLIGENCE</h1>
+    <div class="header-controls">
+      <div class="status-info">
+        <span class="rec-dot" id="rec-dot"></span>
+        <span id="duration">00:00</span>
+        <span id="cost">$0.0000</span>
+      </div>
+      <button class="mic-btn start" id="mic-btn" onclick="toggleMic()">Start Mic</button>
+    </div>
+  </div>
+
+  <!-- Left: Live Transcript -->
+  <div class="panel transcript-panel">
+    <div class="panel-header">Live Transcript</div>
+    <div class="panel-body">
+      <div class="transcript-area" id="transcript-area">
+        <div class="transcript-placeholder" id="transcript-placeholder">
+          Click "Start Mic" to begin live transcription.<br>
+          Works with any meeting -- Zoom, Meet, phone calls.
+        </div>
+        <div id="transcript-lines"></div>
+        <div class="transcript-interim" id="transcript-interim"></div>
+      </div>
+    </div>
+    <div class="transcript-actions" id="transcript-actions">
+      <button class="btn-small" onclick="copyTranscript()">Copy</button>
+      <button class="btn-small" onclick="saveTranscript()">Save</button>
+      <button class="btn-small" onclick="clearTranscript()">Clear</button>
+    </div>
+  </div>
+
+  <!-- Right: Intelligence -->
+  <div class="intel-panel">
+    <!-- Person Briefing -->
+    <div class="panel">
+      <div class="panel-header">Person Briefing</div>
+      <div class="panel-body briefing-section">
+        <div class="input-row">
+          <input type="text" id="person-input" placeholder="Enter person name..." />
+          <button class="btn-primary" id="briefing-btn" onclick="fetchBriefing()">Briefing</button>
+        </div>
+        <div class="loading" id="briefing-loading">Loading briefing...</div>
+        <div class="briefing-result" id="briefing-result"></div>
+      </div>
+    </div>
+
+    <!-- Knowledge Graph Query -->
+    <div class="panel">
+      <div class="panel-header">Ask the Knowledge Graph</div>
+      <div class="panel-body query-section">
+        <textarea class="query-input" id="query-input" placeholder="e.g., When did I last meet Adam Mokhtar?&#10;What do Chris and Jorge have in common?"></textarea>
+        <button class="btn-primary" onclick="submitQuery()" style="width:100%">Ask</button>
+        <div class="loading" id="query-loading">Thinking...</div>
+        <div class="query-result" id="query-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =================== STATE ===================
+const API_BASE = window.location.origin;
+let ws = null;
+let mediaStream = null;
+let mediaRecorder = null;
+let transcriptLines = [];
+let isRecording = false;
+let startTime = null;
+let costTimer = null;
+
+// =================== MIC CONTROL ===================
+async function toggleMic() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+async function startRecording() {
+  const btn = document.getElementById('mic-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+
+  try {
+    // Get mic audio (native browser API — works on any web page)
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // Connect WebSocket to our backend proxy (NOT directly to Deepgram)
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/transcribe`);
+
+    ws.onopen = () => {
+      console.log('[Meeting] WebSocket connected to backend');
+
+      // Start MediaRecorder
+      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm;codecs=opus' });
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(e.data);
+        }
+      };
+      mediaRecorder.start(250);
+
+      // Update UI
+      isRecording = true;
+      startTime = Date.now();
+      btn.textContent = 'Stop';
+      btn.className = 'mic-btn stop';
+      btn.disabled = false;
+      document.getElementById('rec-dot').classList.add('active');
+      document.getElementById('transcript-placeholder').style.display = 'none';
+      document.getElementById('transcript-actions').classList.add('visible');
+      costTimer = setInterval(updateCost, 1000);
+    };
+
+    ws.onmessage = (event) => {
+      handleTranscript(event);
+    };
+
+    ws.onerror = (err) => {
+      console.error('[Meeting] WebSocket error:', err);
+      showToast('Connection error');
+      stopRecording();
+    };
+
+    ws.onclose = (event) => {
+      console.warn('[Meeting] WebSocket closed:', event.code);
+      if (isRecording) {
+        showToast('Disconnected');
+        stopRecording();
+      }
+    };
+
+  } catch (err) {
+    console.error('Start error:', err);
+    if (err.name === 'NotAllowedError') {
+      showToast('Mic access denied -- check browser permissions');
+    } else {
+      showToast('Failed: ' + err.message);
+    }
+    btn.disabled = false;
+    btn.textContent = 'Start Mic';
+    btn.className = 'mic-btn start';
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+
+  if (costTimer) { clearInterval(costTimer); costTimer = null; }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.stop(); }
+  mediaRecorder = null;
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (ws) {
+    if (ws.readyState === WebSocket.OPEN) { ws.close(); }
+    ws = null;
+  }
+
+  const btn = document.getElementById('mic-btn');
+  btn.textContent = 'Start Mic';
+  btn.className = 'mic-btn start';
+  btn.disabled = false;
+  document.getElementById('rec-dot').classList.remove('active');
+}
+
+// =================== TRANSCRIPT HANDLING ===================
+function handleTranscript(event) {
+  try {
+    const data = JSON.parse(event.data);
+    if (data.error) { showToast(data.error); return; }
+
+    const channel = data.channel;
+    if (!channel || !channel.alternatives || !channel.alternatives[0]) return;
+
+    const alt = channel.alternatives[0];
+    const text = alt.transcript;
+    if (!text) return;
+
+    const speaker = alt.words && alt.words[0] ? alt.words[0].speaker : null;
+    const isFinal = data.is_final;
+
+    if (isFinal) {
+      transcriptLines.push({ speaker, text, timestamp: Date.now() });
+      renderTranscript();
+      document.getElementById('transcript-interim').textContent = '';
+    } else {
+      const label = speaker !== null ? `Speaker ${speaker}: ` : '';
+      document.getElementById('transcript-interim').textContent = label + text;
+    }
+
+    // Auto-scroll
+    const area = document.getElementById('transcript-area');
+    area.scrollTop = area.scrollHeight;
+  } catch (err) {
+    console.error('Parse error:', err);
+  }
+}
+
+function renderTranscript() {
+  const colors = ['speaker-0', 'speaker-1', 'speaker-2', 'speaker-3', 'speaker-4'];
+  const container = document.getElementById('transcript-lines');
+
+  container.innerHTML = transcriptLines.map(line => {
+    const cls = line.speaker !== null ? colors[line.speaker % colors.length] : 'speaker-0';
+    const label = line.speaker !== null ? `Speaker ${line.speaker}` : 'Speaker';
+    return `<div class="transcript-line">
+      <span class="transcript-speaker ${cls}">${label}:</span>
+      <span>${escapeHtml(line.text)}</span>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// =================== TRANSCRIPT ACTIONS ===================
+function copyTranscript() {
+  if (transcriptLines.length === 0) { showToast('No transcript to copy'); return; }
+
+  const text = transcriptLines.map(l => {
+    const label = l.speaker !== null ? `Speaker ${l.speaker}` : 'Speaker';
+    return `${label}: ${l.text}`;
+  }).join('\n');
+
+  navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+}
+
+async function saveTranscript() {
+  if (transcriptLines.length === 0) { showToast('No transcript to save'); return; }
+
+  const person = document.getElementById('person-input').value.trim() || null;
+  try {
+    const resp = await fetch(`${API_BASE}/transcript/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ person, lines: transcriptLines }),
+    });
+    const data = await resp.json();
+    showToast(`Saved! (${data.lines} lines)`);
+  } catch (err) {
+    showToast('Save failed: ' + err.message);
+  }
+}
+
+function clearTranscript() {
+  transcriptLines = [];
+  document.getElementById('transcript-lines').innerHTML = '';
+  document.getElementById('transcript-interim').textContent = '';
+  if (!isRecording) {
+    document.getElementById('transcript-placeholder').style.display = 'block';
+    document.getElementById('transcript-actions').classList.remove('visible');
+  }
+}
+
+function getTranscriptContext(minutes) {
+  if (transcriptLines.length === 0) return null;
+  const cutoff = Date.now() - (minutes * 60 * 1000);
+  const recent = transcriptLines.filter(l => l.timestamp >= cutoff);
+  const lines = recent.length > 0 ? recent : transcriptLines.slice(-20);
+  return lines.map(l => {
+    const label = l.speaker !== null ? `Speaker ${l.speaker}` : 'Speaker';
+    return `${label}: ${l.text}`;
+  }).join('\n');
+}
+
+// =================== BRIEFING ===================
+async function fetchBriefing() {
+  const name = document.getElementById('person-input').value.trim();
+  if (!name) { showToast('Enter a person name'); return; }
+
+  const loading = document.getElementById('briefing-loading');
+  const result = document.getElementById('briefing-result');
+  const btn = document.getElementById('briefing-btn');
+
+  loading.classList.add('visible');
+  result.classList.remove('visible');
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch(`${API_BASE}/briefing?person=${encodeURIComponent(name)}`);
+    const data = await resp.json();
+
+    if (data.error) {
+      result.textContent = data.error;
+    } else {
+      const p = data.person || {};
+      let text = `${p.name || '?'} (${p.category || '?'})\n`;
+      text += `Meetings: ${p.total_meetings || 0} | Last seen: ${p.last_seen || 'N/A'}\n`;
+
+      const meetings = data.recent_meetings || [];
+      if (meetings.length > 0) {
+        text += `\nRecent meetings:\n`;
+        meetings.slice(0, 5).forEach(m => {
+          text += `  ${m.date || '?'} - ${m.meeting || '?'}\n`;
+        });
+      }
+
+      const connections = data.top_connections || [];
+      if (connections.length > 0) {
+        text += `\nTop connections:\n`;
+        connections.slice(0, 5).forEach(c => {
+          text += `  ${c.name} (${c.shared} shared) [${c.category || '?'}]\n`;
+        });
+      }
+
+      result.textContent = text;
+    }
+
+    result.classList.add('visible');
+  } catch (err) {
+    showToast('Briefing failed: ' + err.message);
+  } finally {
+    loading.classList.remove('visible');
+    btn.disabled = false;
+  }
+}
+
+// =================== QUERY ===================
+async function submitQuery() {
+  const question = document.getElementById('query-input').value.trim();
+  if (!question) { showToast('Enter a question'); return; }
+
+  const loading = document.getElementById('query-loading');
+  const result = document.getElementById('query-result');
+
+  loading.classList.add('visible');
+  result.classList.remove('visible');
+
+  try {
+    const contextPerson = document.getElementById('person-input').value.trim() || null;
+    const liveContext = isRecording ? getTranscriptContext(5) : null;
+
+    const resp = await fetch(`${API_BASE}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        context_person: contextPerson,
+        live_context: liveContext,
+      }),
+    });
+
+    const data = await resp.json();
+    result.textContent = data.formatted || JSON.stringify(data.result, null, 2);
+    result.classList.add('visible');
+  } catch (err) {
+    showToast('Query failed: ' + err.message);
+  } finally {
+    loading.classList.remove('visible');
+  }
+}
+
+// Enter key to submit query
+document.getElementById('query-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuery(); }
+});
+document.getElementById('person-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); fetchBriefing(); }
+});
+
+// =================== COST TIMER ===================
+function updateCost() {
+  if (!startTime) return;
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
+  document.getElementById('duration').textContent =
+    `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  const cost = (elapsed / 60) * 0.0043;
+  document.getElementById('cost').textContent = `$${cost.toFixed(4)}`;
+}
+
+// =================== TOAST ===================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 2500);
+}
+</script>
+</body>
+</html>
