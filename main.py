@@ -9,6 +9,7 @@ Endpoints:
   POST /transcript/save         -- Save a meeting transcript
   GET  /transcripts             — List saved transcripts
   GET  /health                  — Neo4j connectivity check
+  POST /playbook/suggest        — Match signals to Hormozi playbooks, suggest questions
 
 Deploy via Coolify (Docker) on the same VPS as Neo4j for low-latency queries.
 
@@ -18,6 +19,7 @@ Environment variables required:
     NEO4J_PASSWORD     <password>
     OPENAI_API_KEY     <key>
     DEEPGRAM_API_KEY   <key>
+    OPENROUTER_API_KEY <key>   (optional - for DeepSeek playbook matching)
 """
 
 import os
@@ -28,6 +30,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from uuid import uuid4
+import re as regex_module
+import httpx
 
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,6 +54,106 @@ app.add_middleware(
 # Transcript storage directory
 TRANSCRIPT_DIR = Path("/data/transcripts")
 TRANSCRIPT_DIR.mkdir(parents=True, exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# Hormozi Coaching Playbooks (loaded at startup)
+# ---------------------------------------------------------------------------
+
+PLAYBOOKS_FILE = Path(__file__).parent / "playbooks.json"
+PLAYBOOKS = []
+TRIGGER_INDEX = []  # [{signal_words: set, playbook_idx: int, signal_text: str}]
+
+
+def _normalize(text: str) -> set:
+    """Normalize text to a set of lowercase words for matching."""
+    return set(regex_module.sub(r'[^a-z0-9\s]', '', text.lower()).split())
+
+
+def load_playbooks():
+    """Load Hormozi playbook index at startup."""
+    global PLAYBOOKS, TRIGGER_INDEX
+    if not PLAYBOOKS_FILE.exists():
+        logger.warning(f"Playbooks file not found: {PLAYBOOKS_FILE}")
+        return
+    try:
+        PLAYBOOKS = json.loads(PLAYBOOKS_FILE.read_text(encoding="utf-8"))
+        TRIGGER_INDEX = []
+        for idx, pb in enumerate(PLAYBOOKS):
+            for sig in pb.get("trigger_signals", []):
+                TRIGGER_INDEX.append({
+                    "signal_words": _normalize(sig),
+                    "signal_text": sig,
+                    "playbook_idx": idx,
+                })
+        logger.info(f"Loaded {len(PLAYBOOKS)} Hormozi playbooks, {len(TRIGGER_INDEX)} trigger signals")
+    except Exception as e:
+        logger.error(f"Failed to load playbooks: {e}")
+
+
+load_playbooks()
+
+
+def match_playbooks_to_signals(detected_signals: dict, top_n: int = 5) -> list:
+    """Match detected coaching signals against Hormozi playbook trigger signals.
+
+    Uses word overlap scoring: for each detected signal item, compute overlap
+    with each trigger signal. Return top-N matched playbooks with their
+    recommended questions.
+    """
+    if not TRIGGER_INDEX:
+        return []
+
+    signal_texts = []
+    for category in ("challenges", "goals", "personal"):
+        for item in detected_signals.get(category, []):
+            text = item if isinstance(item, str) else item.get("item", "")
+            if text:
+                signal_texts.append(text)
+
+    if not signal_texts:
+        return []
+
+    playbook_scores = {}
+    playbook_matched = {}
+
+    for trigger in TRIGGER_INDEX:
+        trigger_words = trigger["signal_words"]
+        if len(trigger_words) < 2:
+            continue
+
+        for sig_text in signal_texts:
+            sig_words = _normalize(sig_text)
+            if len(sig_words) < 2:
+                continue
+            overlap = len(trigger_words & sig_words)
+            score = overlap / min(len(trigger_words), len(sig_words))
+
+            pb_idx = trigger["playbook_idx"]
+            if score > playbook_scores.get(pb_idx, 0):
+                playbook_scores[pb_idx] = score
+                playbook_matched[pb_idx] = trigger["signal_text"]
+
+    MIN_SCORE = 0.25
+    ranked = sorted(
+        [(idx, score) for idx, score in playbook_scores.items() if score >= MIN_SCORE],
+        key=lambda x: -x[1]
+    )[:top_n]
+
+    results = []
+    for pb_idx, score in ranked:
+        pb = PLAYBOOKS[pb_idx]
+        results.append({
+            "playbook_id": pb.get("id", ""),
+            "title": pb.get("title", ""),
+            "categories": pb.get("problem_categories", []),
+            "match_score": round(score, 2),
+            "matched_trigger": playbook_matched.get(pb_idx, ""),
+            "questions": pb.get("recommended_questions", {}),
+            "turning_points": pb.get("turning_points", []),
+            "top_diagnostic": [q["q"] for q in pb.get("question_sequence", [])[:3]],
+        })
+
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -449,6 +553,11 @@ class SignalExtractionRequest(BaseModel):
     utterances: List[str]  # Last 60-120 seconds of final utterances
 
 
+class PlaybookSuggestRequest(BaseModel):
+    signals: Dict[str, list]  # {challenges: [...], goals: [...], personal: [...]}
+    utterances: Optional[List[str]] = None  # Recent utterances for contextual refinement
+
+
 @app.get("/briefing")
 def briefing_endpoint(person: str = Query(..., description="Person name to look up")):
     """Full person briefing from Neo4j."""
@@ -581,6 +690,161 @@ def extract_live_signals(req: SignalExtractionRequest):
         logger.error(f"Signal extraction error: {e}")
         return JSONResponse(
             content={"error": str(e), "challenges": [], "goals": [], "personal": []},
+            status_code=500,
+        )
+
+
+
+# ---------------------------------------------------------------------------
+# Hormozi Playbook Matching & Question Suggestions
+# ---------------------------------------------------------------------------
+
+PLAYBOOK_SUGGEST_PROMPT = """You are a coaching intelligence assistant. Based on the detected coaching signals and recent conversation, suggest the most relevant questions to ask right now.
+
+You have access to Alex Hormozi's coaching playbook patterns. Given the signals detected in the conversation, pick the TOP 3-5 most impactful questions the coach should ask next.
+
+For each question, explain briefly WHY it's relevant to what was just discussed.
+
+DETECTED SIGNALS:
+{signals_text}
+
+RECENT CONVERSATION:
+{utterances_text}
+
+MATCHED PLAYBOOK PATTERNS:
+{matched_patterns}
+
+Respond with JSON only:
+{{
+  "suggested_questions": [
+    {{
+      "question": "The exact question to ask",
+      "why": "Why this question is relevant right now (1 sentence)",
+      "category": "discovery|deepening|commitment|diagnostic",
+      "source_playbook": "playbook title or 'general'"
+    }}
+  ]
+}}"""
+
+
+@app.post("/playbook/suggest")
+def suggest_playbook_questions(req: PlaybookSuggestRequest):
+    """Match detected signals against Hormozi playbooks and suggest questions."""
+    logger.info("Playbook suggestion request")
+
+    try:
+        # Step 1: Fast keyword matching against trigger signals
+        matched = match_playbooks_to_signals(req.signals)
+
+        if not matched and not req.utterances:
+            return {"suggested_questions": [], "matched_playbooks": []}
+
+        # Step 2: If we have utterances and an OpenRouter key, use DeepSeek for contextual refinement
+        openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+
+        if openrouter_key and req.utterances:
+            try:
+                signals_text = ""
+                for cat in ("challenges", "goals", "personal"):
+                    items = req.signals.get(cat, [])
+                    if items:
+                        signals_text += f"\n{cat.upper()}:\n"
+                        for item in items:
+                            text = item if isinstance(item, str) else item.get("item", "")
+                            signals_text += f"  - {text}\n"
+
+                utterances_text = "\n".join(req.utterances[-15:])
+
+                matched_patterns = ""
+                for m in matched[:3]:
+                    matched_patterns += f"\nPlaybook: {m['title']} (categories: {', '.join(m['categories'])})"
+                    matched_patterns += f"\n  Matched signal: {m['matched_trigger']}"
+                    for q in m["top_diagnostic"][:2]:
+                        matched_patterns += f"\n  Diagnostic Q: {q}"
+                    qs = m.get("questions", {})
+                    for q in qs.get("discovery", [])[:1]:
+                        matched_patterns += f"\n  Discovery Q: {q}"
+                    for q in qs.get("deepening", [])[:1]:
+                        matched_patterns += f"\n  Deepening Q: {q}"
+
+                prompt = PLAYBOOK_SUGGEST_PROMPT.format(
+                    signals_text=signals_text or "No specific signals detected yet",
+                    utterances_text=utterances_text,
+                    matched_patterns=matched_patterns or "No specific playbook matches",
+                )
+
+                resp = httpx.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openrouter_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "deepseek/deepseek-chat",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.3,
+                        "max_tokens": 800,
+                        "response_format": {"type": "json_object"},
+                    },
+                    timeout=15.0,
+                )
+                resp.raise_for_status()
+                llm_result = resp.json()
+                content_str = llm_result["choices"][0]["message"]["content"]
+                suggestions = json.loads(content_str)
+
+                logger.info(f"DeepSeek suggestions: {len(suggestions.get('suggested_questions', []))} questions")
+                return {
+                    "suggested_questions": suggestions.get("suggested_questions", []),
+                    "matched_playbooks": [
+                        {"id": m["playbook_id"], "title": m["title"], "score": m["match_score"], "categories": m["categories"]}
+                        for m in matched
+                    ],
+                    "source": "deepseek",
+                }
+
+            except Exception as e:
+                logger.warning(f"DeepSeek refinement failed, falling back to keyword matching: {e}")
+
+        # Step 3: Keyword-only fallback (no LLM)
+        questions = []
+        seen = set()
+        for m in matched:
+            qs = m.get("questions", {})
+            for cat in ("discovery", "deepening", "commitment"):
+                for q in qs.get(cat, []):
+                    if q not in seen:
+                        seen.add(q)
+                        questions.append({
+                            "question": q,
+                            "why": f"Matched pattern: {m['matched_trigger']}",
+                            "category": cat,
+                            "source_playbook": m["title"],
+                        })
+            for tp in m.get("turning_points", [])[:1]:
+                q = tp.get("q", "")
+                if q and q not in seen:
+                    seen.add(q)
+                    questions.append({
+                        "question": q,
+                        "why": tp.get("why", "Key turning-point question"),
+                        "category": "diagnostic",
+                        "source_playbook": m["title"],
+                    })
+
+        return {
+            "suggested_questions": questions[:5],
+            "matched_playbooks": [
+                {"id": m["playbook_id"], "title": m["title"], "score": m["match_score"], "categories": m["categories"]}
+                for m in matched
+            ],
+            "source": "keyword_match",
+        }
+
+    except Exception as e:
+        logger.error(f"Playbook suggestion error: {e}")
+        return JSONResponse(
+            content={"error": str(e), "suggested_questions": []},
             status_code=500,
         )
 

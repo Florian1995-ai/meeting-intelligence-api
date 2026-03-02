@@ -433,7 +433,86 @@
     color: #ccc;
     font-size: 12px;
   }
-  .last-meeting-entity-type {
+  /* Suggested Questions Panel */
+  .suggested-questions-panel { display: none; }
+  .suggested-questions-panel.visible { display: block; }
+
+  .sq-item {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    background: #0f0f1a;
+    border-left: 3px solid #7b8cde;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .sq-item:hover { background: #1a1a3a; }
+  .sq-item.category-discovery { border-left-color: #28a745; }
+  .sq-item.category-deepening { border-left-color: #e6a817; }
+  .sq-item.category-commitment { border-left-color: #dc3545; }
+  .sq-item.category-diagnostic { border-left-color: #7b8cde; }
+
+  .sq-question {
+    font-size: 13px;
+    color: #e0e0e0;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .sq-why {
+    font-size: 11px;
+    color: #888;
+    margin-top: 3px;
+    font-style: italic;
+  }
+  .sq-meta {
+    font-size: 10px;
+    color: #555;
+    margin-top: 3px;
+    display: flex;
+    gap: 10px;
+  }
+  .sq-category-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: #2a2a4a;
+    color: #7b8cde;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sq-empty {
+    font-size: 12px;
+    color: #444;
+    text-align: center;
+    padding: 12px 8px;
+  }
+  .sq-source {
+    color: #555;
+    font-size: 10px;
+    text-align: right;
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .sq-copied-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    animation: fadeInOut 2s ease;
+  }
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(10px); }
+    15% { opacity: 1; transform: translateY(0); }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+    .last-meeting-entity-type {
     color: #666;
     font-size: 10px;
     text-transform: uppercase;
@@ -580,6 +659,20 @@
       </div>
     </div>
 
+    <!-- Suggested Questions (Hormozi Playbook) -->
+    <div class="panel suggested-questions-panel" id="suggested-questions-panel">
+      <div class="panel-header">
+        Suggested Questions
+        <span style="font-size:10px;color:#555;font-weight:400;margin-left:8px" id="sq-source-label"></span>
+      </div>
+      <div class="panel-body" id="sq-body">
+        <div class="sq-empty" id="sq-empty">
+          Questions will appear here as coaching signals are detected during the call.
+        </div>
+        <div id="sq-items"></div>
+      </div>
+    </div>
+
     <!-- Knowledge Graph Query -->
     <div class="panel">
       <div class="panel-header">Ask the Knowledge Graph</div>
@@ -608,6 +701,8 @@ let startTime = null;
 let costTimer = null;
 let transcriptCollapsed = false;
 let insightsCollapsed = false;
+let suggestedQuestions = [];
+let lastPlaybookUtterances = [];
 let isAutoScroll = true;
 let newLinesSinceScroll = 0;
 let signalTimer = null;
@@ -679,6 +774,7 @@ async function startRecording() {
       document.getElementById('transcript-actions').classList.add('visible');
       document.getElementById('notes-input-area').classList.add('visible');
       document.getElementById('insights-panel').classList.add('visible');
+      document.getElementById('suggested-questions-panel').classList.add('visible');
       costTimer = setInterval(updateCost, 1000);
 
       // Start signal extraction timer (every 35 seconds)
@@ -876,6 +972,9 @@ function clearTranscript() {
     document.getElementById('transcript-actions').classList.remove('visible');
     document.getElementById('notes-input-area').classList.remove('visible');
     document.getElementById('insights-panel').classList.remove('visible');
+    document.getElementById('suggested-questions-panel').classList.remove('visible');
+    suggestedQuestions = [];
+    renderSuggestedQuestions('');
   }
 }
 
@@ -1164,9 +1263,70 @@ async function extractSignals() {
     const data = await resp.json();
     mergeInsights(data);
     renderInsights();
+
+    // Also fetch playbook suggestions based on detected signals
+    fetchPlaybookSuggestions(data, newUtterances);
   } catch (err) {
     console.error('Signal extraction error:', err);
   }
+}
+
+async function fetchPlaybookSuggestions(signals, utterances) {
+  try {
+    const resp = await fetch(`${API_BASE}/playbook/suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signals, utterances: utterances || [] }),
+    });
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+    suggestedQuestions = data.suggested_questions || [];
+    renderSuggestedQuestions(data.source || 'unknown');
+  } catch (err) {
+    console.error('Playbook suggestion error:', err);
+  }
+}
+
+function renderSuggestedQuestions(source) {
+  const container = document.getElementById('sq-items');
+  const empty = document.getElementById('sq-empty');
+  const sourceLabel = document.getElementById('sq-source-label');
+
+  if (suggestedQuestions.length === 0) {
+    empty.style.display = 'block';
+    container.innerHTML = '';
+    sourceLabel.textContent = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  sourceLabel.textContent = source === 'deepseek' ? 'via AI' : 'via pattern match';
+
+  container.innerHTML = suggestedQuestions.map((sq, idx) => {
+    const cat = sq.category || 'diagnostic';
+    return `<div class="sq-item category-${cat}" onclick="copySuggestedQuestion(${idx})" title="Click to copy">
+      <div class="sq-question">${escapeHtml(sq.question)}</div>
+      <div class="sq-why">${escapeHtml(sq.why || '')}</div>
+      <div class="sq-meta">
+        <span class="sq-category-badge">${cat}</span>
+        ${sq.source_playbook ? `<span>${escapeHtml(sq.source_playbook)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copySuggestedQuestion(idx) {
+  const q = suggestedQuestions[idx];
+  if (!q) return;
+  navigator.clipboard.writeText(q.question).then(() => {
+    // Show brief toast
+    const toast = document.createElement('div');
+    toast.className = 'sq-copied-toast';
+    toast.textContent = 'Question copied!';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  });
 }
 
 function normalizeText(text) {

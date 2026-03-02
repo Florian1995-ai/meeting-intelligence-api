@@ -1,0 +1,1040 @@
+[
+ {
+  "id": "hormozi-001",
+  "title": "Building a $1,000,000 Business for a Stranger in 56 Mins",
+  "problem_categories": [
+   "acquisition",
+   "retention",
+   "metrics"
+  ],
+  "trigger_signals": [
+   "Client says they can't find enough leads.",
+   "Business owner doing everything themselves.",
+   "Revenue plateau at $300,000."
+  ],
+  "question_sequence": [
+   {
+    "q": "How do you make money?",
+    "purpose": "To understand the revenue model and pricing structure."
+   },
+   {
+    "q": "Where do you find your clients?",
+    "purpose": "To diagnose the effectiveness of current acquisition channels."
+   },
+   {
+    "q": "What’s holding you back?",
+    "purpose": "To identify the key constraints in the business."
+   },
+   {
+    "q": "Do you have any other stuff by platform?",
+    "purpose": "To gather detailed metrics on advertising performance."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What if we sent 400 emails?",
+    "why": "This question highlighted the potential for scaling the affiliate program significantly."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What are your current revenue streams?",
+    "How do you currently acquire clients?",
+    "What challenges are you facing in scaling your business?"
+   ],
+   "deepening": [
+    "Can you provide specific metrics on your lead generation?",
+    "What feedback have you received from your clients?",
+    "How do you differentiate your service from competitors?"
+   ],
+   "commitment": [
+    "What steps can you take this week to increase your lead flow?",
+    "How can we measure the effectiveness of your new strategies?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-002",
+  "title": "Building a $1,000,000 Business for a Stranger in 69 Minutes",
+  "problem_categories": [
+   "acquisition",
+   "offer",
+   "pricing",
+   "ops"
+  ],
+  "trigger_signals": [
+   "Client expresses difficulty in acquiring customers.",
+   "Client mentions negative profit margins.",
+   "Client indicates they are overwhelmed with multiple strategies."
+  ],
+  "question_sequence": [
+   {
+    "q": "What happens if you don't solve this?",
+    "purpose": "To understand the urgency and stakes involved."
+   },
+   {
+    "q": "Who do you help?",
+    "purpose": "To clarify the target customer segments."
+   },
+   {
+    "q": "How do you make money?",
+    "purpose": "To understand the revenue model and pricing structure."
+   },
+   {
+    "q": "What stops you from just spending 70,000?",
+    "purpose": "To probe into the limitations of their current marketing budget."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "If you could just do one, which one would you do?",
+    "why": "This question forced the client to prioritize and clarify focus."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges are you facing with customer acquisition?",
+    "How do you currently define your target market?",
+    "What metrics are you tracking to measure success?"
+   ],
+   "deepening": [
+    "What have you tried in the past that didn't work?",
+    "How do your customers perceive your value proposition?",
+    "What is your current pricing strategy?"
+   ],
+   "commitment": [
+    "What steps can you take this week to improve your customer acquisition?",
+    "How will you measure the success of these changes?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-003",
+  "title": "Building a $1,000,000 Business for Two Strangers in 57 Minutes",
+  "problem_categories": [
+   "acquisition",
+   "offer",
+   "retention"
+  ],
+  "trigger_signals": [
+   "Client mentions high customer acquisition costs.",
+   "Business owner expresses feeling maxed out on time.",
+   "Client struggles with defining their core offer."
+  ],
+  "question_sequence": [
+   {
+    "q": "How do you make money?",
+    "purpose": "To understand their revenue model and pricing structure."
+   },
+   {
+    "q": "If you eliminated Slack, how much time would you get back?",
+    "purpose": "To diagnose time constraints and the impact of their current communication model."
+   },
+   {
+    "q": "What problem are we solving?",
+    "purpose": "To clarify the core issue they are addressing with their services."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "If you were to talk to my team, what would be the number one question I ask?",
+    "why": "This question prompted them to reflect on their business model and assumptions."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges are you facing with customer acquisition?",
+    "How do you currently measure the success of your offers?",
+    "What feedback have you received from your clients about your services?"
+   ],
+   "deepening": [
+    "What assumptions are you making about your clients' needs?",
+    "How do you prioritize your time and resources in your business?",
+    "What would happen if you simplified your offerings?"
+   ],
+   "commitment": [
+    "What specific actions will you take to address these challenges?",
+    "How can I support you in implementing these changes?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-004",
+  "title": "Building a $2,300,000/yr Business for a Stranger in 57 Mins",
+  "problem_categories": [
+   "acquisition",
+   "pricing",
+   "retention",
+   "hiring"
+  ],
+  "trigger_signals": [
+   "Client expresses feeling overwhelmed with partner dynamics.",
+   "Client mentions lead generation as a constant issue.",
+   "Client indicates they are doing unpaid work."
+  ],
+  "question_sequence": [
+   {
+    "q": "What's the problem that you're dealing with right now?",
+    "purpose": "To identify the main challenges the client is facing."
+   },
+   {
+    "q": "Tell me more about the partnership situation.",
+    "purpose": "To delve deeper into the dynamics affecting business operations."
+   },
+   {
+    "q": "How do you make money?",
+    "purpose": "To understand the financial mechanics of the business."
+   },
+   {
+    "q": "Would you say that you have more of a limitation on doing the work or getting customers?",
+    "purpose": "To clarify the primary bottleneck in business operations."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "Why did you take the partners on?",
+    "why": "This question prompted Anie to reflect on her decision-making process and the implications of her partnerships."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What are the main challenges you face in your business?",
+    "How do you currently acquire customers?",
+    "What are your profit margins like?"
+   ],
+   "deepening": [
+    "Can you describe your partnership dynamics in more detail?",
+    "What specific outcomes do you want to achieve in the next year?",
+    "How do you measure success in your business?"
+   ],
+   "commitment": [
+    "What steps are you willing to take to address these partnership issues?",
+    "How can we structure your pricing to improve profitability?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-005",
+  "title": "Building a $3,000,000 Business for a Stranger in 57 Mins",
+  "problem_categories": [
+   "acquisition",
+   "offer",
+   "pricing"
+  ],
+  "trigger_signals": [
+   "Client mentions high customer acquisition costs.",
+   "Client expresses frustration with inconsistent revenue.",
+   "Client struggles to convert leads into sales."
+  ],
+  "question_sequence": [
+   {
+    "q": "What's holding you back?",
+    "purpose": "To identify the main obstacles in the business."
+   },
+   {
+    "q": "What percentage of people go from the core offer to the upsell?",
+    "purpose": "To assess the effectiveness of the current offer and upsell strategy."
+   },
+   {
+    "q": "What could you sell for like $8 to $10,000?",
+    "purpose": "To explore potential lower-priced offers that could attract more clients."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What do you think your customer acquisition cost should be?",
+    "why": "This question prompted the client to reflect on their pricing and offer structure."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges are you facing in acquiring new clients?",
+    "How do you currently position your offer to potential clients?",
+    "What feedback have you received from past clients about your services?"
+   ],
+   "deepening": [
+    "Can you describe the ideal client for your business?",
+    "What metrics do you track to measure the success of your offers?",
+    "How do you differentiate your services from competitors?"
+   ],
+   "commitment": [
+    "What steps can you take this week to refine your offer?",
+    "How can we set a timeline for implementing these changes?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-006",
+  "title": "Building a $3,500,000 Business for a Stranger in 51 Mins",
+  "problem_categories": [
+   "pricing",
+   "acquisition",
+   "retention"
+  ],
+  "trigger_signals": [
+   "Client mentions low profit margins.",
+   "Client expresses confusion about pricing strategy.",
+   "Client indicates overwhelming marketing channels."
+  ],
+  "question_sequence": [
+   {
+    "q": "What's the goal?",
+    "purpose": "To understand the client's aspirations and desired outcomes."
+   },
+   {
+    "q": "How do you make money?",
+    "purpose": "To diagnose the revenue model and pricing structure."
+   },
+   {
+    "q": "What's been holding you back?",
+    "purpose": "To identify perceived obstacles and challenges."
+   },
+   {
+    "q": "Do you want to sell this company eventually?",
+    "purpose": "To understand the long-term vision for the business."
+   },
+   {
+    "q": "How do you get customers?",
+    "purpose": "To assess customer acquisition strategies."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What percentage of customers are new versus return?",
+    "why": "This question highlighted the importance of customer retention and the potential for repeat sales."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What are your current revenue streams?",
+    "How do you differentiate your products?",
+    "What feedback do you get from your customers?"
+   ],
+   "deepening": [
+    "What specific challenges do you face with your pricing?",
+    "How often do you review your pricing strategy?",
+    "What are your customer acquisition costs?"
+   ],
+   "commitment": [
+    "What immediate actions can you take to improve your pricing?",
+    "How will you track the success of these changes?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-007",
+  "title": "Building a $3,500,000 Business for Two Strangers in 52 Minutes",
+  "problem_categories": [
+   "acquisition",
+   "pricing",
+   "retention",
+   "ops"
+  ],
+  "trigger_signals": [
+   "Client mentions struggling to fill the restaurant during non-peak hours.",
+   "Business owner expresses uncertainty about scaling effectively.",
+   "Client indicates they want to improve takeout and alcohol sales."
+  ],
+  "question_sequence": [
+   {
+    "q": "What is the goal?",
+    "purpose": "To understand the long-term vision of the business."
+   },
+   {
+    "q": "How do you make money?",
+    "purpose": "To diagnose the revenue model and identify key profit drivers."
+   },
+   {
+    "q": "What's holding you back?",
+    "purpose": "To uncover specific obstacles preventing growth."
+   },
+   {
+    "q": "What kind of promotional offers do you run?",
+    "purpose": "To assess current marketing strategies and their effectiveness."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "Have you considered having weekend pricing?",
+    "why": "This question prompted them to think about dynamic pricing strategies to maximize revenue during peak times."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges are you facing in your current operations?",
+    "How do you currently attract new customers?",
+    "What feedback do you receive from your customers?"
+   ],
+   "deepening": [
+    "What have you tried in the past to address these issues?",
+    "How do you measure the success of your marketing efforts?",
+    "What are your customers' most common complaints?"
+   ],
+   "commitment": [
+    "What steps can you take this week to implement these changes?",
+    "How will you track the effectiveness of these new strategies?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-008",
+  "title": "Building a $5,000,000 Business for a Stranger in 42 Mins",
+  "problem_categories": [
+   "acquisition",
+   "ops",
+   "metrics"
+  ],
+  "trigger_signals": [
+   "Client mentions inconsistent lead flow.",
+   "Business owner expresses difficulty in scaling marketing efforts.",
+   "Client reports high close rates but low lead generation."
+  ],
+  "question_sequence": [
+   {
+    "q": "What's the goal?",
+    "purpose": "To understand the client's long-term vision and objectives."
+   },
+   {
+    "q": "Who do you help specifically?",
+    "purpose": "To identify the target demographic and market focus."
+   },
+   {
+    "q": "How do you make money?",
+    "purpose": "To understand the revenue model and pricing structure."
+   },
+   {
+    "q": "What's the problem?",
+    "purpose": "To diagnose the main challenges facing the business."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "Why is Kent so much better?",
+    "why": "This question prompted the client to analyze performance differences between locations, revealing insights about team dynamics and operational effectiveness."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges are you facing with lead generation?",
+    "How do you currently track and measure your marketing effectiveness?",
+    "What feedback have you received from your team regarding operations?"
+   ],
+   "deepening": [
+    "Can you describe the sales process from lead generation to closing?",
+    "What operational challenges have you encountered as you've scaled?",
+    "How do you ensure consistency in service delivery across locations?"
+   ],
+   "commitment": [
+    "What specific actions will you take to improve lead generation?",
+    "How can we measure the success of these changes in the next quarter?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-009",
+  "title": "Give Me 47 minutes, And I'll Fix Your Small Business",
+  "problem_categories": [
+   "acquisition",
+   "ops",
+   "mindset"
+  ],
+  "trigger_signals": [
+   "Client mentions they can't find enough leads.",
+   "Business owner doing everything themselves.",
+   "Revenue plateau at less than $10 million."
+  ],
+  "question_sequence": [
+   {
+    "q": "Is there any keyman risk in your business?",
+    "purpose": "To identify if the business relies heavily on one individual."
+   },
+   {
+    "q": "How many channels do you use to acquire customers?",
+    "purpose": "To assess the diversity of customer acquisition strategies."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What would your business look like if it could run without you?",
+    "why": "This question forced the client to envision a self-sustaining business and consider their role."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What key functions of your business rely on one person?",
+    "How do you currently acquire customers?",
+    "What would happen if your primary revenue source disappeared?"
+   ],
+   "deepening": [
+    "How have you tried to diversify your customer acquisition?",
+    "What steps have you taken to reduce reliance on key individuals?",
+    "What systems do you have in place to support your team?"
+   ],
+   "commitment": [
+    "What specific actions can you take to reduce keyman risk?",
+    "How will you implement a plan to diversify your revenue channels?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-010",
+  "title": "I Confronted a Stranger With a Failing Business...",
+  "problem_categories": [
+   "acquisition",
+   "pricing",
+   "fulfillment"
+  ],
+  "trigger_signals": [
+   "Client says they are losing money.",
+   "Client mentions multiple revenue streams but unclear profitability.",
+   "Client expresses confusion about customer acquisition."
+  ],
+  "question_sequence": [
+   {
+    "q": "What are the business units right now?",
+    "purpose": "To understand the different revenue streams and their performance."
+   },
+   {
+    "q": "How are you getting customers right now?",
+    "purpose": "To identify the customer acquisition channels."
+   },
+   {
+    "q": "How do you try and sell them?",
+    "purpose": "To assess the sales process and conversion strategy."
+   },
+   {
+    "q": "Is there any reason that you just don't sell services and make money?",
+    "purpose": "To challenge the client’s assumptions about their business model."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "In a world hypothetically where you just ended the software tomorrow and then you have the education and services, what is required for you to maintain the education work-wise per week?",
+    "why": "This question forced the client to consider the feasibility of simplifying their business."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What are your current revenue streams?",
+    "How do you acquire customers?",
+    "What is your pricing strategy for services?"
+   ],
+   "deepening": [
+    "What challenges do you face in delivering your services?",
+    "How do you measure the success of your customer acquisition efforts?",
+    "What feedback do you receive from clients about your services?"
+   ],
+   "commitment": [
+    "What specific actions will you take to simplify your business model?",
+    "How will you measure the success of these changes?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-011",
+  "title": "My Actual Social Media Strategy For 2026",
+  "problem_categories": [
+   "acquisition",
+   "mindset",
+   "positioning"
+  ],
+  "trigger_signals": [
+   "Client expresses frustration about low engagement on content.",
+   "Business owner mentions trying various content types without success.",
+   "Client indicates they are unsure how to attract their ideal audience."
+  ],
+  "question_sequence": [
+   {
+    "q": "How do you define status from an operational perspective?",
+    "purpose": "To understand the client's perception of status in their content strategy."
+   },
+   {
+    "q": "What makes you credible in your niche?",
+    "purpose": "To assess the client's credibility and how it relates to their content."
+   },
+   {
+    "q": "How do you relate to your audience?",
+    "purpose": "To explore the client's likeness and relatability to their target audience."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What do you think is the biggest barrier to your content's effectiveness?",
+    "why": "This question prompted deep reflection on the client's strategies and beliefs."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific outcomes do you want from your content?",
+    "Who is your target audience and what do they value?",
+    "What types of content have you tried in the past?"
+   ],
+   "deepening": [
+    "How do you measure the success of your content?",
+    "What feedback have you received from your audience?",
+    "What do you believe your audience is missing from your current content?"
+   ],
+   "commitment": [
+    "What specific actions will you take to implement these changes?",
+    "How will you track your progress moving forward?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-012",
+  "title": "Your biggest advantage is no one knows who you are",
+  "problem_categories": [
+   "acquisition",
+   "mindset",
+   "positioning"
+  ],
+  "trigger_signals": [
+   "Client expresses frustration about lack of visibility.",
+   "Business owner feels overwhelmed by competition.",
+   "Client believes they need a large audience to succeed."
+  ],
+  "question_sequence": [
+   {
+    "q": "Have you considered that one, when I started I was in your position?",
+    "purpose": "To help the client realize that starting from a low visibility position is common."
+   },
+   {
+    "q": "What do you think your unique advantage is in your current position?",
+    "purpose": "To prompt the client to identify their strengths despite being unknown."
+   },
+   {
+    "q": "How can you increase your advertising volume to negate luck?",
+    "purpose": "To diagnose their current marketing efforts and encourage proactive strategies."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What if the fact that nobody knows you is actually a good thing?",
+    "why": "This question reframed the client's perspective on their situation, highlighting potential advantages."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges are you facing in gaining visibility?",
+    "How do you currently market your business?",
+    "What feedback have you received from potential customers?"
+   ],
+   "deepening": [
+    "What do you think is holding you back from reaching more customers?",
+    "How do you define success in your marketing efforts?",
+    "What unique value do you believe your business offers?"
+   ],
+   "commitment": [
+    "What specific actions will you take to leverage your underdog status?",
+    "How can I support you in implementing these strategies?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-013",
+  "title": "100m-money-models-live-launch-6_CCutkM11g",
+  "problem_categories": [
+   "Sales",
+   "Marketing",
+   "Customer Retention",
+   "Employee Retention",
+   "Client Acquisition"
+  ],
+  "trigger_signals": [
+   "What should I prioritize next?",
+   "How can I increase retention?",
+   "How do I create recurring revenue?",
+   "What changes do we need to make?"
+  ],
+  "question_sequence": [
+   {
+    "q": "What should I prioritize next?",
+    "purpose": "To diagnose the best path for scaling revenue."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What specific challenges do your affiliates face?",
+    "why": "It prompted the caller to consider affiliate needs and engagement."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific feedback have you received from your clients?",
+    "How do you currently support your employees in their roles?",
+    "What unique offerings do you have that could attract more customers?"
+   ],
+   "deepening": [
+    "What feedback have you received from your affiliates about their experience?",
+    "How often do you engage with your customers to understand their needs?",
+    "What specific changes have you considered to improve retention?"
+   ],
+   "commitment": [
+    "Are you willing to invest in a strategy to re-engage your affiliates?",
+    "What steps can you take this week to start implementing a new retention strategy?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-014",
+  "title": "alex-hormozi-answers-your-questions-IG9IWQVmxqk",
+  "problem_categories": [
+   "Lead generation",
+   "Sales process",
+   "Client qualification",
+   "Training and development",
+   "Scaling"
+  ],
+  "trigger_signals": [
+   "I want to scale",
+   "We don't have enough qualified leads",
+   "It takes a long time to get those people up to speed"
+  ],
+  "question_sequence": [
+   {
+    "q": "What stops you from spending more on PPC?",
+    "purpose": "Diagnoses constraints in marketing budget and effectiveness."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "If you could double your business, what would stop you?",
+    "why": "It forced clients to confront their operational constraints."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges do you face during the off-season?",
+    "What specific criteria do you use to qualify leads?",
+    "What are the key elements of your current pitch?"
+   ],
+   "deepening": [
+    "What would a successful year-round strategy look like for you?",
+    "What changes can you make to your application process to improve lead quality?",
+    "What challenges do your salespeople face during pitches?"
+   ],
+   "commitment": [
+    "Are you willing to implement a new marketing strategy this quarter?",
+    "Are you ready to implement changes to your lead qualification process?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-015",
+  "title": "brutally-honest-advice-for-mental-toughness-hormozi-hotline-I0nCuqu7Cac",
+  "problem_categories": [
+   "Mindset",
+   "Growth",
+   "Sales"
+  ],
+  "trigger_signals": [
+   "I feel stuck",
+   "I can't get consistent referrals",
+   "I don't know how to grow",
+   "I feel constrained",
+   "It takes too long to recover"
+  ],
+  "question_sequence": [
+   {
+    "q": "How do you respond to bad things?",
+    "purpose": "To diagnose resilience and adaptability."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "Do you want to be a businessman or a technician?",
+    "why": "It forced the caller to confront their commitment to business growth."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges are you facing right now?",
+    "What are your current pricing strategies?",
+    "What are your current lead generation strategies?"
+   ],
+   "deepening": [
+    "What past experiences have shaped your current mindset?",
+    "What specific challenges do you face with client retention?",
+    "What challenges do you face in building relationships with referral sources?"
+   ],
+   "commitment": [
+    "What steps are you willing to take to improve your mental toughness?",
+    "What specific actions will you take to improve your lead generation?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-016",
+  "title": "brutally-honest-advice-to-achieve-your-goals-7TmfdhOwIzU",
+  "problem_categories": [
+   "Cash flow",
+   "Partnership issues",
+   "Marketing",
+   "Sales strategy",
+   "Market positioning"
+  ],
+  "trigger_signals": [
+   "cutting off two bad partners",
+   "taking a business loan",
+   "high-end baby clothes",
+   "new mothers",
+   "digital business",
+   "physical manufacturing"
+  ],
+  "question_sequence": [
+   {
+    "q": "What specific issues are causing cash flow problems?",
+    "purpose": "To diagnose the root causes of financial struggles."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "Do you have shitty baby clothes?",
+    "why": "It humorously challenged the caller's perception of their product quality."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What do new mothers value most when choosing baby clothes?",
+    "What specific challenges do your clients face that your service addresses?",
+    "How have the bad partners impacted your business operations?"
+   ],
+   "deepening": [
+    "What unique features do your clothes offer compared to competitors?",
+    "How can you create a narrative around your brand that resonates with new mothers?",
+    "What feedback have you received from clients about your service?"
+   ],
+   "commitment": [
+    "Are you willing to implement a plan to address these issues without taking a loan?",
+    "Are you ready to adjust your marketing strategy to better appeal to your target audience?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-017",
+  "title": "how-to-actually-achieve-anything-hormozi-hotline--HbwUdqUcEs",
+  "problem_categories": [
+   "Sales Process",
+   "Hiring and Retention",
+   "Customer Retention",
+   "Lead Generation",
+   "Capital Acquisition"
+  ],
+  "trigger_signals": [
+   "We can't hire and retain talented people",
+   "If they don't use it, they turn.",
+   "We are always hiring",
+   "I want to apply your principles"
+  ],
+  "question_sequence": [
+   {
+    "q": "What is your lead gen funnel for the technicians?",
+    "purpose": "To identify the effectiveness of their current hiring strategy."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What would happen if you increased your sales training efforts?",
+    "why": "It prompted the caller to consider the impact of investment in training."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific challenges do you face in your sales process?",
+    "What are the main reasons users give for churning?",
+    "What specific challenges do you face in recruiting technicians?"
+   ],
+   "deepening": [
+    "What features do users find most valuable?",
+    "How do you measure the success of your sales team?",
+    "What challenges do you face in closing deals?"
+   ],
+   "commitment": [
+    "Are you willing to invest in improving your sales training?",
+    "Are you willing to implement a new onboarding process?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-018",
+  "title": "how-to-build-a-business-that-runs-without-you-TLpLmhWqKEU",
+  "problem_categories": [
+   "Cash Flow",
+   "Sales Process",
+   "Customer Acquisition",
+   "Lead Generation",
+   "Market Positioning"
+  ],
+  "trigger_signals": [
+   "bring the cash forward",
+   "low close rate",
+   "cash flow becomes super inconsistent",
+   "need enough businesses"
+  ],
+  "question_sequence": [
+   {
+    "q": "What stops you from doing more of what you're doing?",
+    "purpose": "To identify barriers to scaling the business."
+   },
+   {
+    "q": "What is your LTV to CAC right now?",
+    "purpose": "To assess the profitability and sustainability of the business model."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What are the other things that someone has to buy in order to begin your service?",
+    "why": "It led to identifying upsell opportunities."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What other services do your customers typically need?",
+    "What characteristics do your best customers share?",
+    "What types of businesses have you had success with in the past?"
+   ],
+   "deepening": [
+    "What objections do customers have about paying upfront?",
+    "What metrics do you track to measure lead quality?",
+    "What has been your most successful marketing channel so far?"
+   ],
+   "commitment": [
+    "Are you willing to implement a new pricing strategy to test its effectiveness?",
+    "Are you ready to invest in a dedicated lead generation team?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-019",
+  "title": "how-to-learn-anything-faster-than-everyone-else-2nTkffKVnas",
+  "problem_categories": [
+   "Customer Acquisition",
+   "Sales Process",
+   "Business Growth",
+   "Employee Integrity",
+   "Business Ethics"
+  ],
+  "trigger_signals": [
+   "Struggling with market size",
+   "Limited leads",
+   "Cold outreach",
+   "Caught employee skimming",
+   "Unsure how to handle theft"
+  ],
+  "question_sequence": [
+   {
+    "q": "What stops you from doing more of what you're currently doing?",
+    "purpose": "To diagnose the constraints in business operations."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What impact do you think this theft has on your business reputation?",
+    "why": "It prompted the caller to consider long-term implications."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific outcomes do your clients expect from your services?",
+    "What impact do you think this theft has on your business reputation?",
+    "How do you want to be perceived by your future buyers?"
+   ],
+   "deepening": [
+    "What are the biggest challenges your clients face that you can address?",
+    "What are the long-term consequences of keeping this employee?",
+    "How can you ensure transparency in your business dealings moving forward?"
+   ],
+   "commitment": [
+    "Are you willing to invest in running ads to see if it improves your client acquisition?",
+    "Are you ready to take action against the employee to protect your business?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-020",
+  "title": "if-you-missed-it-launching-live-again-B2QbLzHvKbg",
+  "problem_categories": [
+   "Lead Generation",
+   "Sales Process",
+   "Customer Acquisition",
+   "Pricing Strategy",
+   "Customer Retention"
+  ],
+  "trigger_signals": [
+   "Need for increased pricing to improve margins.",
+   "Desire to nurture existing leads more effectively.",
+   "Recognition of the importance of follow-up in sales."
+  ],
+  "question_sequence": [
+   {
+    "q": "What specific objections do you encounter during initial calls?",
+    "purpose": "To identify barriers in the sales process."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What additional value can you provide to leads during the initial call?",
+    "why": "It prompted callers to think creatively about their offerings."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific metrics do you track for your clients?",
+    "How do you currently qualify leads before they become clients?",
+    "What feedback do you receive from schools about your pricing?"
+   ],
+   "deepening": [
+    "What additional services could you offer to increase client value?",
+    "How can you improve your sales process to better communicate value?",
+    "What additional value can you provide to schools to justify your pricing?"
+   ],
+   "commitment": [
+    "Are you ready to implement a new pricing strategy?",
+    "Are you willing to increase your email outreach to your existing clients?"
+   ]
+  }
+ },
+ {
+  "id": "hormozi-021",
+  "title": "we-get-34m-views-a-month-heres-how-eW04CvHKvMo",
+  "problem_categories": [
+   "Scaling",
+   "Decision Making",
+   "Sales",
+   "Lead Generation"
+  ],
+  "trigger_signals": [
+   "Need for consistency in lead generation",
+   "Desire for immediate action",
+   "Challenges in sales processes"
+  ],
+  "question_sequence": [
+   {
+    "q": "What do you want to do?",
+    "purpose": "To clarify goals and identify main issues."
+   }
+  ],
+  "turning_points": [
+   {
+    "q": "What resources do you have available to start your business?",
+    "why": "Encouraged callers to assess their current assets and capabilities."
+   }
+  ],
+  "recommended_questions": {
+   "discovery": [
+    "What specific skills do you think you need to develop?",
+    "How many posts are you currently making each week?",
+    "What specific challenges do you face in your current sales process?"
+   ],
+   "deepening": [
+    "What feedback have you received from your current leads?",
+    "What types of lead magnets have you tried in the past?",
+    "How do you differentiate your services from competitors?"
+   ],
+   "commitment": [
+    "What is your first step towards starting your business today?",
+    "What new lead generation strategy will you implement this week?"
+   ]
+  }
+ }
+]
