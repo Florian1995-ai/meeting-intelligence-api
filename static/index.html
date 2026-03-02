@@ -493,6 +493,117 @@
     margin-top: 4px;
     font-style: italic;
   }
+  /* Mid-Call Summary Panel (Phase 2) */
+  .mid-call-panel { display: none; }
+  .mid-call-panel.visible { display: block; }
+
+  .summary-btn {
+    padding: 6px 14px;
+    border: 1px solid #28a745;
+    border-radius: 6px;
+    background: transparent;
+    color: #28a745;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+  .summary-btn.visible { display: inline-block; }
+  .summary-btn:hover { background: #28a745; color: white; }
+  .summary-btn:disabled { opacity: 0.5; cursor: wait; }
+  .summary-btn.loading { border-color: #888; color: #888; }
+
+  .email-btn {
+    padding: 6px 14px;
+    border: 1px solid #e6a817;
+    border-radius: 6px;
+    background: transparent;
+    color: #e6a817;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+  .email-btn.visible { display: inline-block; }
+  .email-btn:hover { background: #e6a817; color: #0a0a1a; }
+
+  .summary-section {
+    margin-bottom: 10px;
+  }
+  .summary-section-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7b8cde;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #1a1a3a;
+  }
+  .summary-overview {
+    font-size: 13px;
+    color: #ccc;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .summary-item {
+    font-size: 12px;
+    color: #bbb;
+    padding: 3px 0 3px 12px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .summary-item::before {
+    content: "\2022";
+    color: #7b8cde;
+    position: absolute;
+    left: 0;
+  }
+  .summary-topic-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #1a1a3a;
+    color: #7b8cde;
+    margin: 2px 4px 2px 0;
+  }
+  .summary-tone {
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+    margin-top: 6px;
+  }
+  .summary-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #1a1a3a;
+  }
+  .summary-actions button {
+    padding: 5px 12px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: transparent;
+    color: #ccc;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .summary-actions button:hover { background: #1a1a3a; }
+  .summary-follow-up {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #28a74520;
+    color: #28a745;
+    margin-top: 6px;
+  }
+
   .sq-copied-toast {
     position: fixed;
     bottom: 20px;
@@ -561,6 +672,8 @@
         <span id="duration">00:00</span>
         <span id="cost">$0.0000</span>
       </div>
+      <button class="summary-btn" id="summary-btn" onclick="generateMidCallSummary()">Summarize</button>
+      <button class="email-btn" id="email-btn" onclick="generateEmailDraft()">Draft Email</button>
       <button class="mic-btn start" id="mic-btn" onclick="toggleMic()">Start Mic</button>
     </div>
   </div>
@@ -673,6 +786,20 @@
       </div>
     </div>
 
+    <!-- Mid-Call Summary (Phase 2) -->
+    <div class="panel mid-call-panel" id="mid-call-panel">
+      <div class="panel-header">
+        Mid-Call Summary
+        <span style="font-size:10px;color:#555;font-weight:400;margin-left:8px" id="summary-timestamp"></span>
+      </div>
+      <div class="panel-body" id="summary-body">
+        <div style="font-size:12px;color:#444;text-align:center;padding:12px 8px" id="summary-empty">
+          Click "Summarize" during a call to get an instant summary.
+        </div>
+        <div id="summary-content" style="display:none"></div>
+      </div>
+    </div>
+
     <!-- Knowledge Graph Query -->
     <div class="panel">
       <div class="panel-header">Ask the Knowledge Graph</div>
@@ -708,6 +835,8 @@ let newLinesSinceScroll = 0;
 let signalTimer = null;
 let lastSignalIndex = 0;  // Index of last utterance sent for signal extraction
 let capturedInsights = { challenges: [], goals: [], personal: [] };  // Accumulated insights
+let midCallSummary = null;  // Current mid-call summary result
+let isSummaryLoading = false;
 
 // =================== MIC CONTROL ===================
 async function toggleMic() {
@@ -775,6 +904,8 @@ async function startRecording() {
       document.getElementById('notes-input-area').classList.add('visible');
       document.getElementById('insights-panel').classList.add('visible');
       document.getElementById('suggested-questions-panel').classList.add('visible');
+      document.getElementById('summary-btn').classList.add('visible');
+      document.getElementById('mid-call-panel').classList.add('visible');
       costTimer = setInterval(updateCost, 1000);
 
       // Start signal extraction timer (every 35 seconds)
@@ -973,8 +1104,14 @@ function clearTranscript() {
     document.getElementById('notes-input-area').classList.remove('visible');
     document.getElementById('insights-panel').classList.remove('visible');
     document.getElementById('suggested-questions-panel').classList.remove('visible');
+    document.getElementById('mid-call-panel').classList.remove('visible');
+    document.getElementById('summary-btn').classList.remove('visible');
+    document.getElementById('email-btn').classList.remove('visible');
     suggestedQuestions = [];
+    midCallSummary = null;
     renderSuggestedQuestions('');
+    document.getElementById('summary-content').style.display = 'none';
+    document.getElementById('summary-empty').style.display = 'block';
   }
 }
 
@@ -1327,6 +1464,192 @@ function copySuggestedQuestion(idx) {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
   });
+}
+
+async function generateMidCallSummary() {
+  if (isSummaryLoading) return;
+  if (transcriptLines.length < 3) {
+    showToast('Need more transcript to summarize');
+    return;
+  }
+
+  const btn = document.getElementById('summary-btn');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  btn.classList.add('loading');
+  isSummaryLoading = true;
+
+  try {
+    // Build full transcript text
+    const transcript = transcriptLines.map(l => {
+      if (l.type === 'note') return `[NOTE] ${l.text}`;
+      const label = l.speaker !== null ? `Speaker ${l.speaker}` : 'Speaker';
+      return `${label}: ${l.text}`;
+    }).join('\n');
+
+    const person = document.getElementById('person-input').value.trim() || null;
+
+    const resp = await fetch(`${API_BASE}/summary/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript,
+        person,
+        insights: capturedInsights,
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+      showToast('Summary failed: ' + (err.error || resp.statusText));
+      return;
+    }
+
+    midCallSummary = await resp.json();
+    renderMidCallSummary();
+    showToast('Summary generated');
+
+    // Show email button now that we have a summary
+    document.getElementById('email-btn').classList.add('visible');
+
+  } catch (err) {
+    console.error('Summary error:', err);
+    showToast('Summary failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Summarize';
+    btn.classList.remove('loading');
+    isSummaryLoading = false;
+  }
+}
+
+function renderMidCallSummary() {
+  if (!midCallSummary) return;
+
+  const container = document.getElementById('summary-content');
+  const empty = document.getElementById('summary-empty');
+  const timestamp = document.getElementById('summary-timestamp');
+
+  empty.style.display = 'none';
+  container.style.display = 'block';
+  timestamp.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  let html = '';
+
+  // Overview
+  if (midCallSummary.summary) {
+    html += `<div class="summary-section">
+      <div class="summary-section-header">Overview</div>
+      <div class="summary-overview">${escapeHtml(midCallSummary.summary)}</div>
+    </div>`;
+  }
+
+  // Key Topics
+  if (midCallSummary.key_topics && midCallSummary.key_topics.length > 0) {
+    html += `<div class="summary-section">
+      <div class="summary-section-header">Key Topics</div>
+      <div>${midCallSummary.key_topics.map(t => `<span class="summary-topic-tag">${escapeHtml(t)}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // Action Items
+  if (midCallSummary.action_items && midCallSummary.action_items.length > 0) {
+    html += `<div class="summary-section">
+      <div class="summary-section-header">Action Items</div>
+      ${midCallSummary.action_items.map(a => `<div class="summary-item">${escapeHtml(a)}</div>`).join('')}
+    </div>`;
+  }
+
+  // Emotional Tone
+  if (midCallSummary.emotional_tone) {
+    html += `<div class="summary-tone">Tone: ${escapeHtml(midCallSummary.emotional_tone)}</div>`;
+  }
+
+  // Follow-up needed badge
+  if (midCallSummary.follow_up_needed) {
+    html += `<div class="summary-follow-up">Follow-up recommended</div>`;
+  }
+
+  // Action buttons
+  html += `<div class="summary-actions">
+    <button onclick="copySummary()">Copy Summary</button>
+    <button onclick="generateEmailDraft()">Draft Email</button>
+    <button onclick="generateMidCallSummary()">Refresh</button>
+  </div>`;
+
+  container.innerHTML = html;
+}
+
+function copySummary() {
+  if (!midCallSummary) return;
+
+  let text = 'MID-CALL SUMMARY\n';
+  text += '================\n\n';
+  if (midCallSummary.summary) text += midCallSummary.summary + '\n\n';
+  if (midCallSummary.key_topics && midCallSummary.key_topics.length) {
+    text += 'KEY TOPICS: ' + midCallSummary.key_topics.join(', ') + '\n\n';
+  }
+  if (midCallSummary.action_items && midCallSummary.action_items.length) {
+    text += 'ACTION ITEMS:\n';
+    midCallSummary.action_items.forEach(a => text += '- ' + a + '\n');
+    text += '\n';
+  }
+  if (midCallSummary.emotional_tone) {
+    text += 'Tone: ' + midCallSummary.emotional_tone + '\n';
+  }
+
+  navigator.clipboard.writeText(text).then(() => showToast('Summary copied'));
+}
+
+async function generateEmailDraft() {
+  if (!midCallSummary) {
+    showToast('Generate a summary first');
+    return;
+  }
+
+  const btn = document.getElementById('email-btn');
+  btn.disabled = true;
+  btn.textContent = 'Drafting...';
+
+  try {
+    const person = document.getElementById('person-input').value.trim() || null;
+
+    const resp = await fetch(`${API_BASE}/email/draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        person,
+        summary: midCallSummary.summary || '',
+        action_items: midCallSummary.action_items || [],
+        key_topics: midCallSummary.key_topics || [],
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+      showToast('Email draft failed: ' + (err.error || resp.statusText));
+      return;
+    }
+
+    const draft = await resp.json();
+
+    // Open mailto link
+    if (draft.mailto_url) {
+      window.open(draft.mailto_url, '_blank');
+      showToast(draft.to ? `Email draft opened (to: ${draft.to})` : 'Email draft opened');
+    } else {
+      // Fallback: copy to clipboard
+      const emailText = `To: ${draft.to || ''}\nSubject: ${draft.subject}\n\n${draft.body}`;
+      navigator.clipboard.writeText(emailText).then(() => showToast('Email draft copied to clipboard'));
+    }
+
+  } catch (err) {
+    console.error('Email draft error:', err);
+    showToast('Email draft failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Draft Email';
+  }
 }
 
 function normalizeText(text) {

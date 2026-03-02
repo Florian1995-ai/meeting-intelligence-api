@@ -10,6 +10,8 @@ Endpoints:
   GET  /transcripts             — List saved transcripts
   GET  /health                  — Neo4j connectivity check
   POST /playbook/suggest        — Match signals to Hormozi playbooks, suggest questions
+  POST /summary/generate        — Mid-call summary from live transcript
+  POST /email/draft             — Generate follow-up email draft from summary
 
 Deploy via Coolify (Docker) on the same VPS as Neo4j for low-latency queries.
 
@@ -558,6 +560,19 @@ class PlaybookSuggestRequest(BaseModel):
     utterances: Optional[List[str]] = None  # Recent utterances for contextual refinement
 
 
+class SummaryGenerateRequest(BaseModel):
+    transcript: str  # Full or partial transcript text
+    person: Optional[str] = None  # Person name for context
+    insights: Optional[Dict[str, list]] = None  # Captured insights so far
+
+
+class EmailDraftRequest(BaseModel):
+    person: Optional[str] = None
+    summary: str  # The generated summary text
+    action_items: Optional[List[str]] = None
+    key_topics: Optional[List[str]] = None
+
+
 @app.get("/briefing")
 def briefing_endpoint(person: str = Query(..., description="Person name to look up")):
     """Full person briefing from Neo4j."""
@@ -1094,6 +1109,193 @@ def list_transcripts():
         except Exception:
             continue
     return {"transcripts": transcripts}
+
+
+
+# ---------------------------------------------------------------------------
+# Mid-Call Summary Generation (Phase 2)
+# ---------------------------------------------------------------------------
+
+MID_CALL_SUMMARY_PROMPT = """You are a coaching session assistant. Generate a concise mid-call summary from the live transcript below.
+
+PERSON: {person}
+
+CAPTURED INSIGHTS SO FAR:
+{insights_text}
+
+TRANSCRIPT:
+{transcript}
+
+Respond with JSON only:
+{{
+  "summary": "3-5 sentence overview of what has been discussed so far",
+  "action_items": ["Specific commitments or next steps mentioned"],
+  "key_topics": ["Main discussion topics (max 5)"],
+  "follow_up_needed": true/false,
+  "emotional_tone": "brief description of the overall emotional tone"
+}}"""
+
+
+@app.post("/summary/generate")
+def generate_mid_call_summary(req: SummaryGenerateRequest):
+    """Generate a mid-call summary from the live transcript."""
+    if not req.transcript or len(req.transcript.strip()) < 50:
+        return JSONResponse(
+            content={"error": "Not enough transcript to summarize"},
+            status_code=400,
+        )
+
+    logger.info(f"Mid-call summary request ({len(req.transcript)} chars)")
+
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+
+        # Build insights text
+        insights_text = "None captured yet"
+        if req.insights:
+            parts = []
+            for cat in ("challenges", "goals", "personal"):
+                items = req.insights.get(cat, [])
+                if items:
+                    texts = []
+                    for item in items:
+                        text = item if isinstance(item, str) else item.get("item", "")
+                        if text:
+                            texts.append(f"  - {text}")
+                    if texts:
+                        parts.append(f"{cat.upper()}:\n" + "\n".join(texts))
+            if parts:
+                insights_text = "\n".join(parts)
+
+        prompt = MID_CALL_SUMMARY_PROMPT.format(
+            person=req.person or "Unknown",
+            insights_text=insights_text,
+            transcript=req.transcript[:8000],  # Cap at ~8K chars to stay within token limits
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.2,
+            max_tokens=600,
+        )
+
+        result = json.loads(response.choices[0].message.content)
+
+        # Ensure expected fields
+        result.setdefault("summary", "")
+        result.setdefault("action_items", [])
+        result.setdefault("key_topics", [])
+        result.setdefault("follow_up_needed", False)
+        result.setdefault("emotional_tone", "")
+
+        logger.info(f"Summary generated: {len(result['action_items'])} action items, {len(result['key_topics'])} topics")
+        return result
+
+    except Exception as e:
+        logger.error(f"Summary generation error: {e}")
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=500,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Email Draft Generation (Phase 2)
+# ---------------------------------------------------------------------------
+
+EMAIL_DRAFT_PROMPT = """Convert this coaching session summary into a brief, warm follow-up email draft. The tone should be professional but personal - like a coach who cares.
+
+PERSON: {person}
+SUMMARY: {summary}
+ACTION ITEMS: {action_items}
+
+Write a natural email that:
+1. References specific things discussed (shows you were listening)
+2. Lists action items clearly
+3. Ends with encouragement
+
+Respond with JSON only:
+{{
+  "subject": "Email subject line",
+  "body": "Full email body text (use \\n for line breaks)"
+}}"""
+
+
+@app.post("/email/draft")
+def generate_email_draft(req: EmailDraftRequest):
+    """Generate a follow-up email draft from a mid-call summary."""
+    if not req.summary:
+        return JSONResponse(content={"error": "No summary provided"}, status_code=400)
+
+    logger.info(f"Email draft request for: {req.person}")
+
+    try:
+        # Look up person's email from Neo4j
+        person_email = None
+        if req.person:
+            try:
+                driver = create_driver()
+                try:
+                    with driver.session() as session:
+                        result = session.run(
+                            "MATCH (p:Person) WHERE toLower(p.canonical_name) CONTAINS toLower($name) "
+                            "RETURN p.primary_email as email LIMIT 1",
+                            name=req.person,
+                        )
+                        record = result.single()
+                        if record and record["email"]:
+                            person_email = record["email"]
+                finally:
+                    driver.close()
+            except Exception as e:
+                logger.warning(f"Could not look up email for {req.person}: {e}")
+
+        from openai import OpenAI
+        client = OpenAI()
+
+        action_items_text = "\n".join(f"- {a}" for a in (req.action_items or []))
+
+        prompt = EMAIL_DRAFT_PROMPT.format(
+            person=req.person or "there",
+            summary=req.summary,
+            action_items=action_items_text or "None specified",
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+            max_tokens=500,
+        )
+
+        result = json.loads(response.choices[0].message.content)
+        subject = result.get("subject", f"Following up on our call")
+        body = result.get("body", "")
+
+        # Build mailto URL
+        import urllib.parse
+        mailto_params = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
+        to_addr = person_email or ""
+        mailto_url = f"mailto:{to_addr}?{mailto_params}"
+
+        logger.info(f"Email draft generated for {req.person} (email: {person_email or 'not found'})")
+
+        return {
+            "to": person_email,
+            "subject": subject,
+            "body": body,
+            "mailto_url": mailto_url,
+        }
+
+    except Exception as e:
+        logger.error(f"Email draft error: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 # ---------------------------------------------------------------------------
