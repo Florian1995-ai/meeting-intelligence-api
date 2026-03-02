@@ -350,6 +350,120 @@
   }
   .toast.visible { transform: translateX(-50%) translateY(0); }
 
+  /* Captured Insights Panel */
+  .insights-panel {
+    display: none;
+    margin-top: 0;
+  }
+  .insights-panel.visible { display: block; }
+  .insights-category {
+    margin-bottom: 12px;
+  }
+  .insights-category-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .insights-category-header.challenges { color: #dc3545; }
+  .insights-category-header.goals { color: #28a745; }
+  .insights-category-header.personal { color: #e6a817; }
+  .insight-count {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #2a2a4a;
+    color: #888;
+    font-weight: 400;
+  }
+  .insight-item {
+    padding: 5px 10px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #0f0f1a;
+  }
+  .insight-item.challenges { border-left: 3px solid #dc3545; }
+  .insight-item.goals { border-left: 3px solid #28a745; }
+  .insight-item.personal { border-left: 3px solid #e6a817; }
+  .insight-text { flex: 1; color: #ccc; }
+  .insight-quote { color: #666; font-style: italic; font-size: 11px; margin-top: 2px; }
+  .insight-speaker { color: #888; font-size: 10px; white-space: nowrap; }
+  .insight-pin {
+    cursor: pointer;
+    font-size: 12px;
+    color: #555;
+    padding: 0 4px;
+    border: none;
+    background: none;
+  }
+  .insight-pin:hover { color: #e6a817; }
+  .insight-pin.pinned { color: #e6a817; }
+  .insights-empty {
+    font-size: 12px;
+    color: #444;
+    text-align: center;
+    padding: 16px 8px;
+  }
+
+  /* Last Meeting Pane */
+  .last-meeting-result {
+    display: none;
+    padding: 14px;
+    background: #0f0f1a;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+  .last-meeting-result.visible { display: block; }
+  .last-meeting-title { font-weight: 600; color: #7b8cde; font-size: 14px; }
+  .last-meeting-date { color: #888; font-size: 12px; margin-bottom: 8px; }
+  .last-meeting-entity {
+    padding: 3px 0;
+    color: #ccc;
+    font-size: 12px;
+  }
+  .last-meeting-entity-type {
+    color: #666;
+    font-size: 10px;
+    text-transform: uppercase;
+    margin-right: 6px;
+  }
+
+  /* Auto-scroll "New lines" button */
+  .new-lines-btn {
+    display: none;
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 16px;
+    background: #4357AD;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .new-lines-btn:hover { background: #354693; }
+  .new-lines-btn.visible { display: block; }
+  .transcript-area-wrapper {
+    position: relative;
+  }
+
   /* Responsive */
   @media (max-width: 768px) {
     .container { grid-template-columns: 1fr; }
@@ -385,13 +499,16 @@
     </div>
     <div class="transcript-body-wrapper" id="transcript-body">
       <div class="panel-body">
-        <div class="transcript-area" id="transcript-area">
-          <div class="transcript-placeholder" id="transcript-placeholder">
-            Click "Start Mic" to begin live transcription.<br>
-            Works with any meeting -- Zoom, Meet, phone calls.
+        <div class="transcript-area-wrapper">
+          <div class="transcript-area" id="transcript-area">
+            <div class="transcript-placeholder" id="transcript-placeholder">
+              Click "Start Mic" to begin live transcription.<br>
+              Works with any meeting -- Zoom, Meet, phone calls.
+            </div>
+            <div id="transcript-lines"></div>
+            <div class="transcript-interim" id="transcript-interim"></div>
           </div>
-          <div id="transcript-lines"></div>
-          <div class="transcript-interim" id="transcript-interim"></div>
+          <button class="new-lines-btn" id="new-lines-btn" onclick="scrollToBottom()"></button>
         </div>
       </div>
     </div>
@@ -403,6 +520,39 @@
       <button class="btn-small" onclick="copyTranscript()">Copy</button>
       <button class="btn-small" onclick="saveTranscript()">Save</button>
       <button class="btn-small" onclick="clearTranscript()">Clear</button>
+    </div>
+  </div>
+
+  <!-- Captured Insights (below transcript, left column) -->
+  <div class="panel insights-panel" id="insights-panel">
+    <div class="panel-header">
+      <div class="panel-header-toggle" onclick="toggleInsightsCollapse()">
+        <span>
+          <span class="collapse-icon" id="insights-collapse-icon">&#9660;</span>
+          Captured Insights
+          <span class="transcript-collapse-summary" id="insights-collapse-summary"></span>
+        </span>
+      </div>
+    </div>
+    <div class="panel-body" id="insights-body">
+      <div class="insights-empty" id="insights-empty">
+        Listening for coaching signals...<br>
+        Challenges, goals, and personal details will appear here automatically.
+      </div>
+      <div id="insights-container">
+        <div class="insights-category" id="insights-challenges">
+          <div class="insights-category-header challenges">Challenges <span class="insight-count" id="challenges-count">0</span></div>
+          <div id="challenges-items"></div>
+        </div>
+        <div class="insights-category" id="insights-goals">
+          <div class="insights-category-header goals">Goals <span class="insight-count" id="goals-count">0</span></div>
+          <div id="goals-items"></div>
+        </div>
+        <div class="insights-category" id="insights-personal">
+          <div class="insights-category-header personal">Personally Meaningful <span class="insight-count" id="personal-count">0</span></div>
+          <div id="personal-items"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -418,6 +568,15 @@
         </div>
         <div class="loading" id="briefing-loading">Loading briefing...</div>
         <div class="briefing-result" id="briefing-result"></div>
+      </div>
+    </div>
+
+    <!-- Last Meeting -->
+    <div class="panel" id="last-meeting-panel" style="display:none">
+      <div class="panel-header">Last Meeting With <span id="last-meeting-person-label">...</span></div>
+      <div class="panel-body">
+        <div class="loading" id="last-meeting-loading">Loading last meeting...</div>
+        <div class="last-meeting-result" id="last-meeting-result"></div>
       </div>
     </div>
 
@@ -448,6 +607,12 @@ let isRecording = false;
 let startTime = null;
 let costTimer = null;
 let transcriptCollapsed = false;
+let insightsCollapsed = false;
+let isAutoScroll = true;
+let newLinesSinceScroll = 0;
+let signalTimer = null;
+let lastSignalIndex = 0;  // Index of last utterance sent for signal extraction
+let capturedInsights = { challenges: [], goals: [], personal: [] };  // Accumulated insights
 
 // =================== MIC CONTROL ===================
 async function toggleMic() {
@@ -513,7 +678,12 @@ async function startRecording() {
       document.getElementById('transcript-placeholder').style.display = 'none';
       document.getElementById('transcript-actions').classList.add('visible');
       document.getElementById('notes-input-area').classList.add('visible');
+      document.getElementById('insights-panel').classList.add('visible');
       costTimer = setInterval(updateCost, 1000);
+
+      // Start signal extraction timer (every 35 seconds)
+      lastSignalIndex = 0;
+      signalTimer = setInterval(extractSignals, 35000);
     };
 
     ws.onmessage = (event) => {
@@ -552,6 +722,7 @@ function stopRecording() {
   isRecording = false;
 
   if (costTimer) { clearInterval(costTimer); costTimer = null; }
+  if (signalTimer) { clearInterval(signalTimer); signalTimer = null; }
   if (audioProcessor) { audioProcessor.disconnect(); audioProcessor = null; }
   if (audioContext) { audioContext.close().catch(() => {}); audioContext = null; }
   if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
@@ -588,14 +759,21 @@ function handleTranscript(event) {
       transcriptLines.push({ speaker, text, timestamp: Date.now(), type: 'transcript' });
       renderTranscript();
       document.getElementById('transcript-interim').textContent = '';
+
+      if (!isAutoScroll) {
+        newLinesSinceScroll++;
+        updateNewLinesButton();
+      }
     } else {
       const label = speaker !== null ? `Speaker ${speaker}: ` : '';
       document.getElementById('transcript-interim').textContent = label + text;
     }
 
-    // Auto-scroll
-    const area = document.getElementById('transcript-area');
-    area.scrollTop = area.scrollHeight;
+    // Auto-scroll only if enabled
+    if (isAutoScroll) {
+      const area = document.getElementById('transcript-area');
+      area.scrollTop = area.scrollHeight;
+    }
   } catch (err) {
     console.error('Parse error:', err);
   }
@@ -643,11 +821,24 @@ function escapeHtml(str) {
 function copyTranscript() {
   if (transcriptLines.length === 0) { showToast('No transcript to copy'); return; }
 
-  const text = transcriptLines.map(l => {
+  let text = transcriptLines.map(l => {
     if (l.type === 'note') return `[NOTE] ${l.text}`;
     const label = l.speaker !== null ? `Speaker ${l.speaker}` : 'Speaker';
     return `${label}: ${l.text}`;
   }).join('\n');
+
+  // Append captured insights if any
+  const total = capturedInsights.challenges.length + capturedInsights.goals.length + capturedInsights.personal.length;
+  if (total > 0) {
+    text += '\n\n--- CAPTURED INSIGHTS ---';
+    for (const [cat, label] of [['challenges', 'CHALLENGES'], ['goals', 'GOALS'], ['personal', 'PERSONALLY MEANINGFUL']]) {
+      const items = capturedInsights[cat];
+      if (items.length > 0) {
+        text += `\n\n${label}:`;
+        items.forEach(i => { text += `\n  - ${i.item}`; });
+      }
+    }
+  }
 
   navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
 }
@@ -674,10 +865,17 @@ function clearTranscript() {
   document.getElementById('transcript-lines').innerHTML = '';
   document.getElementById('transcript-interim').textContent = '';
   updateCollapseSummary();
+
+  // Clear insights
+  capturedInsights = { challenges: [], goals: [], personal: [] };
+  lastSignalIndex = 0;
+  renderInsights();
+
   if (!isRecording) {
     document.getElementById('transcript-placeholder').style.display = 'block';
     document.getElementById('transcript-actions').classList.remove('visible');
     document.getElementById('notes-input-area').classList.remove('visible');
+    document.getElementById('insights-panel').classList.remove('visible');
   }
 }
 
@@ -771,6 +969,11 @@ async function fetchBriefing() {
     }
 
     result.classList.add('visible');
+
+    // Auto-fetch last meeting when briefing loads successfully
+    if (!data.error) {
+      fetchLastMeeting(name);
+    }
   } catch (err) {
     showToast('Briefing failed: ' + err.message);
   } finally {
@@ -844,6 +1047,38 @@ document.getElementById('person-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); fetchBriefing(); }
 });
 
+// =================== AUTO-SCROLL ===================
+document.getElementById('transcript-area').addEventListener('scroll', function() {
+  const el = this;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+  if (atBottom) {
+    isAutoScroll = true;
+    newLinesSinceScroll = 0;
+    updateNewLinesButton();
+  } else if (isAutoScroll) {
+    isAutoScroll = false;
+    newLinesSinceScroll = 0;
+  }
+});
+
+function updateNewLinesButton() {
+  const btn = document.getElementById('new-lines-btn');
+  if (newLinesSinceScroll > 0 && !isAutoScroll) {
+    btn.textContent = `New lines (${newLinesSinceScroll})`;
+    btn.classList.add('visible');
+  } else {
+    btn.classList.remove('visible');
+  }
+}
+
+function scrollToBottom() {
+  const area = document.getElementById('transcript-area');
+  area.scrollTop = area.scrollHeight;
+  isAutoScroll = true;
+  newLinesSinceScroll = 0;
+  updateNewLinesButton();
+}
+
 // =================== TRANSCRIPT COLLAPSE ===================
 function toggleTranscriptCollapse() {
   transcriptCollapsed = !transcriptCollapsed;
@@ -903,6 +1138,193 @@ function addNote() {
 document.getElementById('note-text').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); addNote(); }
 });
+
+// =================== SIGNAL EXTRACTION ===================
+async function extractSignals() {
+  // Collect only transcript utterances since last extraction
+  const transcriptOnly = transcriptLines.filter(l => l.type === 'transcript');
+  if (transcriptOnly.length <= lastSignalIndex) return;  // No new utterances
+
+  const newUtterances = transcriptOnly.slice(lastSignalIndex).map(l => {
+    const label = l.speaker !== null ? `Speaker ${l.speaker}` : 'Speaker';
+    return `${label}: ${l.text}`;
+  });
+  lastSignalIndex = transcriptOnly.length;
+
+  if (newUtterances.length < 2) return;  // Need at least a couple lines
+
+  try {
+    const resp = await fetch(`${API_BASE}/signals/extract-live`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ utterances: newUtterances }),
+    });
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+    mergeInsights(data);
+    renderInsights();
+  } catch (err) {
+    console.error('Signal extraction error:', err);
+  }
+}
+
+function normalizeText(text) {
+  return text.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function isDuplicate(existing, newItem) {
+  const normNew = normalizeText(newItem.item);
+  return existing.some(e => {
+    const normExisting = normalizeText(e.item);
+    // Check overlap: if one contains most of the other
+    if (normExisting.includes(normNew) || normNew.includes(normExisting)) return true;
+    // Simple word overlap check
+    const wordsA = new Set(normExisting.split(' '));
+    const wordsB = new Set(normNew.split(' '));
+    const intersection = [...wordsA].filter(w => wordsB.has(w) && w.length > 3);
+    const overlap = intersection.length / Math.min(wordsA.size, wordsB.size);
+    return overlap > 0.7;
+  });
+}
+
+function mergeInsights(newData) {
+  for (const category of ['challenges', 'goals', 'personal']) {
+    const newItems = newData[category] || [];
+    for (const item of newItems) {
+      if (!isDuplicate(capturedInsights[category], item)) {
+        item.pinned = false;
+        item.timestamp = Date.now();
+        capturedInsights[category].push(item);
+      }
+    }
+  }
+}
+
+function renderInsights() {
+  const total = capturedInsights.challenges.length + capturedInsights.goals.length + capturedInsights.personal.length;
+  const empty = document.getElementById('insights-empty');
+  empty.style.display = total === 0 ? 'block' : 'none';
+
+  for (const category of ['challenges', 'goals', 'personal']) {
+    const items = capturedInsights[category];
+    document.getElementById(`${category}-count`).textContent = items.length;
+    const container = document.getElementById(`${category}-items`);
+
+    container.innerHTML = items.map((item, idx) => {
+      const pinClass = item.pinned ? 'pinned' : '';
+      const pinIcon = item.pinned ? '&#9733;' : '&#9734;';
+      return `<div class="insight-item ${category}">
+        <div class="insight-text">
+          ${escapeHtml(item.item)}
+          ${item.evidence_quote ? `<div class="insight-quote">"${escapeHtml(item.evidence_quote)}"</div>` : ''}
+        </div>
+        <span class="insight-speaker">${escapeHtml(item.speaker || '')}</span>
+        <button class="insight-pin ${pinClass}" onclick="togglePin('${category}', ${idx})" title="Pin">${pinIcon}</button>
+      </div>`;
+    }).join('');
+  }
+
+  updateInsightsSummary();
+}
+
+function togglePin(category, idx) {
+  capturedInsights[category][idx].pinned = !capturedInsights[category][idx].pinned;
+  renderInsights();
+}
+
+function updateInsightsSummary() {
+  const summary = document.getElementById('insights-collapse-summary');
+  const c = capturedInsights.challenges.length;
+  const g = capturedInsights.goals.length;
+  const p = capturedInsights.personal.length;
+  const total = c + g + p;
+  if (total === 0) {
+    summary.textContent = 'Listening...';
+  } else {
+    summary.textContent = `${c}C ${g}G ${p}P`;
+  }
+}
+
+// =================== INSIGHTS COLLAPSE ===================
+function toggleInsightsCollapse() {
+  insightsCollapsed = !insightsCollapsed;
+  const body = document.getElementById('insights-body');
+  const icon = document.getElementById('insights-collapse-icon');
+  const summary = document.getElementById('insights-collapse-summary');
+
+  if (insightsCollapsed) {
+    body.style.display = 'none';
+    icon.classList.add('collapsed');
+    summary.classList.add('visible');
+    updateInsightsSummary();
+  } else {
+    body.style.display = 'block';
+    icon.classList.remove('collapsed');
+    summary.classList.remove('visible');
+  }
+}
+
+// =================== LAST MEETING ===================
+async function fetchLastMeeting(personName) {
+  const panel = document.getElementById('last-meeting-panel');
+  const loading = document.getElementById('last-meeting-loading');
+  const result = document.getElementById('last-meeting-result');
+  const label = document.getElementById('last-meeting-person-label');
+
+  label.textContent = personName;
+  panel.style.display = 'block';
+  loading.classList.add('visible');
+  result.classList.remove('visible');
+
+  try {
+    const resp = await fetch(`${API_BASE}/last-meeting?person=${encodeURIComponent(personName)}`);
+
+    if (!resp.ok) {
+      let errMsg;
+      try { const e = await resp.json(); errMsg = e.error || `HTTP ${resp.status}`; }
+      catch (_) { errMsg = `HTTP ${resp.status}: ${resp.statusText}`; }
+      result.innerHTML = `<span style="color:#888">${escapeHtml(errMsg)}</span>`;
+      result.classList.add('visible');
+      return;
+    }
+
+    const data = await resp.json();
+
+    if (data.error) {
+      result.innerHTML = `<span style="color:#888">${escapeHtml(data.error)}</span>`;
+    } else {
+      let html = `<div class="last-meeting-title">${escapeHtml(data.title || 'Meeting')}</div>`;
+      html += `<div class="last-meeting-date">${escapeHtml(data.date || 'Unknown date')} &middot; ${escapeHtml(data.type || '')}</div>`;
+
+      if (data.entities && data.entities.length > 0) {
+        html += '<div style="margin-top:8px">';
+        data.entities.forEach(e => {
+          if (e.entity) {
+            html += `<div class="last-meeting-entity">
+              <span class="last-meeting-entity-type">${escapeHtml(e.rel_type || '')}</span>
+              ${escapeHtml(e.entity)}${e.description ? ` - <span style="color:#888">${escapeHtml(e.description)}</span>` : ''}
+            </div>`;
+          }
+        });
+        html += '</div>';
+      }
+
+      if (data.saved_transcript) {
+        html += `<div style="margin-top:8px;color:#666;font-size:11px">Saved transcript: ${data.saved_transcript.line_count} lines (${data.saved_transcript.saved_at || ''})</div>`;
+      }
+
+      result.innerHTML = html;
+    }
+
+    result.classList.add('visible');
+  } catch (err) {
+    result.innerHTML = `<span style="color:#dc3545">Failed: ${escapeHtml(err.message)}</span>`;
+    result.classList.add('visible');
+  } finally {
+    loading.classList.remove('visible');
+  }
+}
 
 // =================== COST TIMER ===================
 function updateCost() {

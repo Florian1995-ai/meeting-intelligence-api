@@ -445,6 +445,10 @@ class QueryRequest(BaseModel):
     live_context: Optional[str] = None  # Rolling transcript from current call
 
 
+class SignalExtractionRequest(BaseModel):
+    utterances: List[str]  # Last 60-120 seconds of final utterances
+
+
 @app.get("/briefing")
 def briefing_endpoint(person: str = Query(..., description="Person name to look up")):
     """Full person briefing from Neo4j."""
@@ -507,6 +511,168 @@ def health_endpoint():
     except Exception as e:
         return JSONResponse(
             content={"status": "error", "message": str(e)},
+            status_code=500,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Real-Time Signal Extraction (Coaching Insights)
+# ---------------------------------------------------------------------------
+
+SIGNAL_EXTRACTION_PROMPT = """You are analyzing a live coaching/meeting conversation. Extract coaching-relevant signals from the utterances below.
+
+For each signal found, provide:
+- item: A concise description (max 15 words)
+- evidence_quote: The exact phrase from the transcript that triggered this signal
+- speaker: The speaker label (e.g. "Speaker 0") or null if unclear
+- confidence: high/medium/low
+
+Categorize into exactly three categories:
+1. **challenges** — Pain points, obstacles, constraints, frustrations, problems they're facing
+2. **goals** — Desired outcomes, targets, timelines, aspirations, what they want to achieve
+3. **personal** — Values, motivations, identity, family details, fears, proud moments, hobbies, personal context
+
+Only extract signals that are clearly present. Do NOT invent or infer signals that aren't explicitly stated.
+If no signals are found in a category, return an empty array for it.
+
+Respond with JSON only:
+{
+  "challenges": [{"item": "...", "evidence_quote": "...", "speaker": "...", "confidence": "..."}],
+  "goals": [{"item": "...", "evidence_quote": "...", "speaker": "...", "confidence": "..."}],
+  "personal": [{"item": "...", "evidence_quote": "...", "speaker": "...", "confidence": "..."}]
+}"""
+
+
+@app.post("/signals/extract-live")
+def extract_live_signals(req: SignalExtractionRequest):
+    """Extract coaching signals (challenges/goals/personal) from recent utterances."""
+    if not req.utterances:
+        return {"challenges": [], "goals": [], "personal": []}
+
+    logger.info(f"Signal extraction: {len(req.utterances)} utterances")
+
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+
+        transcript_text = "\n".join(req.utterances)
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": SIGNAL_EXTRACTION_PROMPT},
+                {"role": "user", "content": transcript_text},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0,
+            max_tokens=800,
+        )
+
+        result = json.loads(response.choices[0].message.content)
+        # Ensure all three categories exist
+        for key in ("challenges", "goals", "personal"):
+            if key not in result:
+                result[key] = []
+
+        logger.info(f"Signals found: {len(result['challenges'])}C {len(result['goals'])}G {len(result['personal'])}P")
+        return result
+
+    except Exception as e:
+        logger.error(f"Signal extraction error: {e}")
+        return JSONResponse(
+            content={"error": str(e), "challenges": [], "goals": [], "personal": []},
+            status_code=500,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Last Meeting Lookup
+# ---------------------------------------------------------------------------
+
+@app.get("/last-meeting")
+def last_meeting_endpoint(person: str = Query(..., description="Person name to look up")):
+    """Get the most recent meeting with a person — summary, action items, open loops."""
+    logger.info(f"Last meeting request for: {person}")
+
+    try:
+        driver = create_driver()
+        try:
+            with driver.session() as session:
+                # Find person's canonical name
+                result = session.run("""
+                    MATCH (p:Person)
+                    WHERE toLower(p.canonical_name) CONTAINS toLower($name)
+                    RETURN p.canonical_name AS canonical_name
+                    LIMIT 1
+                """, name=person)
+                record = result.single()
+                if not record:
+                    return {"error": f"Person not found: {person}"}
+
+                canonical = record["canonical_name"]
+
+                # Get most recent meeting
+                result = session.run("""
+                    MATCH (p:Person {canonical_name: $name})-[r:ATTENDED]->(m:Meeting)
+                    RETURN m.human_name AS title, m.date AS date,
+                           m.meeting_type AS type, r.role AS role
+                    ORDER BY m.date DESC
+                    LIMIT 1
+                """, name=canonical)
+                meeting_record = result.single()
+
+                if not meeting_record:
+                    return {"error": f"No meetings found with {canonical}"}
+
+                meeting_data = {
+                    "person": canonical,
+                    "date": meeting_record["date"],
+                    "title": meeting_record["title"],
+                    "type": meeting_record["type"],
+                    "role": meeting_record["role"],
+                }
+
+                # Try to find related entity nodes (topics, action items) from LightRAG
+                result = session.run("""
+                    MATCH (p:Person {canonical_name: $name})-[:ATTENDED]->(m:Meeting)
+                    WHERE m.date = $date
+                    OPTIONAL MATCH (m)-[r]->(e)
+                    WHERE type(r) <> 'ATTENDED'
+                    RETURN type(r) AS rel_type, e.entity_name AS entity,
+                           e.description AS description
+                    LIMIT 20
+                """, name=canonical, date=meeting_record["date"])
+                entities = [dict(r) for r in result]
+
+                if entities:
+                    meeting_data["entities"] = entities
+
+            # Also check saved transcripts on disk
+            saved_summary = None
+            for f in sorted(TRANSCRIPT_DIR.glob("*.json"), reverse=True):
+                try:
+                    data = json.loads(f.read_text())
+                    if data.get("person") and canonical.lower() in data["person"].lower():
+                        saved_summary = {
+                            "saved_at": data.get("saved_at"),
+                            "line_count": data.get("line_count", 0),
+                        }
+                        break
+                except Exception:
+                    continue
+
+            if saved_summary:
+                meeting_data["saved_transcript"] = saved_summary
+
+            return meeting_data
+
+        finally:
+            driver.close()
+
+    except Exception as e:
+        logger.error(f"Last meeting error: {e}")
+        return JSONResponse(
+            content={"error": str(e)},
             status_code=500,
         )
 
